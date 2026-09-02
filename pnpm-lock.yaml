@@ -31,7 +31,7 @@ importers:
         specifier: ^1.0.15
         version: 1.54.2(vite@6.4.3(@types/node@20.19.43)(jiti@1.21.7))(wrangler@4.127.1)
       '@types/node':
-        specifier: ^20.19.43
+        specifier: ^20
         version: 20.19.43
       '@types/react':
         specifier: ^19.1.2
@@ -40,7 +40,7 @@ importers:
         specifier: ^19.1.2
         version: 19.2.5(@types/react@19.2.18)
       '@vitejs/plugin-react':
-        specifier: ^4.7.0
+        specifier: ^4.4.1
         version: 4.7.0(supports-color@10.2.2)(vite@6.4.3(@types/node@20.19.43)(jiti@1.21.7))
       autoprefixer:
         specifier: ^10.4.21
