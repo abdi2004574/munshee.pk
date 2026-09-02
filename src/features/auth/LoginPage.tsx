@@ -1,0 +1,79 @@
+﻿import { useState, type FormEvent } from "react";
+import { useNavigate } from "react-router";
+import { supabase } from "@/lib/supabase";
+import { Button } from "@/components/Button";
+import { Input } from "@/components/Input";
+import { Card } from "@/components/Card";
+
+export function LoginPage() {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    setLoading(false);
+
+    if (error) {
+      setError(error.message);
+      return;
+    }
+
+    navigate("/dashboard");
+  }
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-surface-muted px-4">
+      <Card className="w-full max-w-md space-y-6 p-8">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-semibold text-ink">Sign in</h1>
+          <p className="text-sm text-ink-muted">Welcome back to Munshee.pk</p>
+        </div>
+
+        <form onSubmit={onSubmit} className="space-y-4">
+          <Input
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <Input
+            label="Password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+
+          {error && (
+            <p className="text-sm text-danger" role="alert">
+              {error}
+            </p>
+          )}
+
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? "Signing in…" : "Sign in"}
+          </Button>
+        </form>
+
+        <p className="text-center text-sm text-ink-muted">
+          No account?{" "}
+          <a href="/signup" className="text-brand-600 hover:text-brand-700">
+            Create one
+          </a>
+        </p>
+      </Card>
+    </div>
+  );
+}
