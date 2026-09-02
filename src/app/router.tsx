@@ -1,10 +1,20 @@
-ï»¿import { createBrowserRouter, Navigate, Outlet } from "react-router";
+import { createBrowserRouter, Navigate, Outlet } from "react-router";
 import { useSession } from "@/features/auth/useSession";
 import { LoginPage } from "@/features/auth/LoginPage";
 import { SignupPage } from "@/features/auth/SignupPage";
 import { CallbackPage } from "@/features/auth/CallbackPage";
 import { DashboardPage } from "@/routes/DashboardPage";
 import { AppShell } from "@/components/AppShell";
+import { ProductsListPage } from "@/features/products/pages/ProductsListPage";
+import { ProductNewPage } from "@/features/products/pages/ProductNewPage";
+import { ProductDetailPage } from "@/features/products/pages/ProductDetailPage";
+import { OrdersListPage } from "@/features/orders/pages/OrdersListPage";
+import { OrderNewPage } from "@/features/orders/pages/OrderNewPage";
+import { OrderDetailPage } from "@/features/orders/pages/OrderDetailPage";
+import { CustomersListPage } from "@/features/customers/pages/CustomersListPage";
+import { CustomerNewPage } from "@/features/customers/pages/CustomerNewPage";
+import { CustomerDetailPage } from "@/features/customers/pages/CustomerDetailPage";
+import { SettingsPage } from "@/features/settings/pages/SettingsPage";
 
 function ProtectedRoute() {
   const { data, isLoading } = useSession();
@@ -12,7 +22,7 @@ function ProtectedRoute() {
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center text-ink-muted">
-        Loadingâ€¦
+        Loading…
       </div>
     );
   }
@@ -34,7 +44,7 @@ function RootRedirect() {
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center text-ink-muted">
-        Loadingâ€¦
+        Loading…
       </div>
     );
   }
@@ -67,6 +77,22 @@ export const router = createBrowserRouter([
         index: true,
         element: <DashboardPage />,
       },
+    ],
+  },
+  {
+    path: "/apps",
+    element: <ProtectedRoute />,
+    children: [
+      { path: "products", element: <ProductsListPage /> },
+      { path: "products/new", element: <ProductNewPage /> },
+      { path: "products/:id", element: <ProductDetailPage /> },
+      { path: "orders", element: <OrdersListPage /> },
+      { path: "orders/new", element: <OrderNewPage /> },
+      { path: "orders/:id", element: <OrderDetailPage /> },
+      { path: "customers", element: <CustomersListPage /> },
+      { path: "customers/new", element: <CustomerNewPage /> },
+      { path: "customers/:id", element: <CustomerDetailPage /> },
+      { path: "settings", element: <SettingsPage /> },
     ],
   },
 ]);

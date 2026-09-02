@@ -1,4 +1,4 @@
-﻿import { useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { NavLink } from "@/components/NavLink";
 import { Icon } from "@/components/Icon";
 import { LogoutButton } from "@/features/auth/LogoutButton";
@@ -6,6 +6,14 @@ import { LogoutButton } from "@/features/auth/LogoutButton";
 interface AppShellProps {
   children: ReactNode;
 }
+
+const navItems = [
+  { to: "/dashboard", label: "Dashboard", end: true },
+  { to: "/apps/products", label: "Products", end: false },
+  { to: "/apps/orders", label: "Orders", end: false },
+  { to: "/apps/customers", label: "Customers", end: false },
+  { to: "/apps/settings", label: "Settings", end: false },
+];
 
 export function AppShell({ children }: AppShellProps) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -20,9 +28,11 @@ export function AppShell({ children }: AppShellProps) {
               <span className="text-lg font-bold text-ink">.pk</span>
             </a>
             <nav className="hidden items-center gap-1 md:flex">
-              <NavLink to="/dashboard" end>
-                Dashboard
-              </NavLink>
+              {navItems.map((item) => (
+                <NavLink key={item.to} to={item.to} end={item.end}>
+                  {item.label}
+                </NavLink>
+              ))}
             </nav>
           </div>
 
@@ -43,9 +53,16 @@ export function AppShell({ children }: AppShellProps) {
         {menuOpen && (
           <div className="border-t border-gray-100 px-4 py-3 md:hidden">
             <nav className="flex flex-col gap-1">
-              <NavLink to="/dashboard" end onClick={() => setMenuOpen(false)}>
-                Dashboard
-              </NavLink>
+              {navItems.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.end}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  {item.label}
+                </NavLink>
+              ))}
               <div className="mt-2">
                 <LogoutButton />
               </div>
