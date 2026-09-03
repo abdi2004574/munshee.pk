@@ -89,7 +89,7 @@ create index inventory_levels_tenant_idx on public.inventory_levels (tenant_id) 
 alter table public.inventory_levels enable row level security;
 drop policy if exists inventory_levels_tenant_select on public.inventory_levels;
 create policy inventory_levels_tenant_select on public.inventory_levels for select using (tenant_id = auth.uid() and deleted_at is null);
-drop policy if not exists inventory_levels_tenant_insert on public.inventory_levels;
+drop policy if exists inventory_levels_tenant_insert on public.inventory_levels;
 create policy inventory_levels_tenant_insert on public.inventory_levels for insert with check (tenant_id = auth.uid());
 drop policy if exists inventory_levels_tenant_update on public.inventory_levels;
 create policy inventory_levels_tenant_update on public.inventory_levels for update using (tenant_id = auth.uid()) with check (tenant_id = auth.uid());

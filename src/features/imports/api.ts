@@ -1,4 +1,4 @@
-﻿import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import type {
   ImportBatch,
   ImportBatchInsert,
@@ -48,20 +48,6 @@ export async function listImportBatches(): Promise<ImportBatch[]> {
   return (data ?? []) as unknown as ImportBatch[];
 }
 
-export async function updateImportBatch(
-  id: string,
-  data: Partial<ImportBatchInsert>,
-): Promise<ImportBatch> {
-  const { data: updated, error } = await supabase
-    .from("import_batches" as never)
-    .update(data as never)
-    .eq("id", id)
-    .select("*")
-    .single();
-  if (error) throw error;
-  return updated as unknown as ImportBatch;
-}
-
 export async function createImportQueueItem(
   data: ImportQueueItemInsert,
 ): Promise<ImportQueueItem> {
@@ -104,17 +90,4 @@ export async function listImportQueue(
   const { data, error } = await query;
   if (error) throw error;
   return (data ?? []) as unknown as ImportQueueItem[];
-}
-
-export async function getImportQueueItem(
-  id: string,
-): Promise<ImportQueueItem | null> {
-  const { data, error } = await supabase
-    .from("import_queue" as never)
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
-  if (error) throw error;
-  if (!data) return null;
-  return data as unknown as ImportQueueItem;
 }

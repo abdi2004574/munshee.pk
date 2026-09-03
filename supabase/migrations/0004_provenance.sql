@@ -13,6 +13,9 @@ alter table public.products
   add column if not exists reviewed_at timestamptz;
 
 alter table public.products
+  drop constraint if exists products_confidence_score_check;
+
+alter table public.products
   add constraint products_confidence_score_check
   check (confidence_score is null or (confidence_score >= 0 and confidence_score <= 1));
 
@@ -22,6 +25,9 @@ alter table public.product_variants
   add column if not exists verbatim_quote text,
   add column if not exists needs_review boolean not null default false,
   add column if not exists reviewed_at timestamptz;
+
+alter table public.product_variants
+  drop constraint if exists product_variants_confidence_score_check;
 
 alter table public.product_variants
   add constraint product_variants_confidence_score_check
@@ -35,6 +41,9 @@ alter table public.customers
   add column if not exists reviewed_at timestamptz;
 
 alter table public.customers
+  drop constraint if exists customers_confidence_score_check;
+
+alter table public.customers
   add constraint customers_confidence_score_check
   check (confidence_score is null or (confidence_score >= 0 and confidence_score <= 1));
 
@@ -44,6 +53,9 @@ alter table public.inventory_levels
   add column if not exists verbatim_quote text,
   add column if not exists needs_review boolean not null default false,
   add column if not exists reviewed_at timestamptz;
+
+alter table public.inventory_levels
+  drop constraint if exists inventory_levels_confidence_score_check;
 
 alter table public.inventory_levels
   add constraint inventory_levels_confidence_score_check

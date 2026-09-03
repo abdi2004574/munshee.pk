@@ -1,5 +1,5 @@
 ﻿import { useState, type FormEvent } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
@@ -9,6 +9,7 @@ export function LoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -27,6 +28,10 @@ export function LoginPage() {
     if (error) {
       setError(error.message);
       return;
+    }
+
+    if (rememberMe) {
+      localStorage.setItem("munshee-remember-me", "true");
     }
 
     navigate("/dashboard");
@@ -62,6 +67,16 @@ export function LoginPage() {
             </p>
           )}
 
+          <label className="flex items-center gap-2 text-sm text-ink-muted">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+            />
+            Remember me
+          </label>
+
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "Signing in…" : "Sign in"}
           </Button>
@@ -69,9 +84,9 @@ export function LoginPage() {
 
         <p className="text-center text-sm text-ink-muted">
           No account?{" "}
-          <a href="/signup" className="text-brand-600 hover:text-brand-700">
+          <Link to="/signup" className="text-brand-600 hover:text-brand-700">
             Create one
-          </a>
+          </Link>
         </p>
       </Card>
     </div>

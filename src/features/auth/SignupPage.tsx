@@ -1,10 +1,12 @@
 ﻿import { useState, type FormEvent } from "react";
+import { Link, useNavigate } from "react-router";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { Card } from "@/components/Card";
 
 export function SignupPage() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -17,7 +19,7 @@ export function SignupPage() {
     setError(null);
     setLoading(true);
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -33,6 +35,11 @@ export function SignupPage() {
       return;
     }
 
+    if (data.session) {
+      navigate("/dashboard");
+      return;
+    }
+
     setSent(true);
   }
 
@@ -45,9 +52,12 @@ export function SignupPage() {
             We sent a confirmation link to <strong>{email}</strong>. Follow it to
             activate your account.
           </p>
-          <a href="/login" className="inline-block text-sm text-brand-600 hover:text-brand-700">
+          <Link
+            to="/login"
+            className="inline-block text-sm text-brand-600 hover:text-brand-700"
+          >
             Back to sign in
-          </a>
+          </Link>
         </Card>
       </div>
     );
@@ -97,9 +107,9 @@ export function SignupPage() {
 
         <p className="text-center text-sm text-ink-muted">
           Already have an account?{" "}
-          <a href="/login" className="text-brand-600 hover:text-brand-700">
+          <Link to="/login" className="text-brand-600 hover:text-brand-700">
             Sign in
-          </a>
+          </Link>
         </p>
       </Card>
     </div>

@@ -1,4 +1,4 @@
-﻿-- 0001_init.sql
+-- 0001_init.sql
 -- Phase 1.1 foundation schema: tenants, profiles, app_settings.
 -- Single-tenant-per-user model: profiles.tenant_id = profiles.user_id.
 
@@ -34,12 +34,35 @@ create table if not exists public.app_settings (
 -- ============================================================================
 
 alter table public.profiles
+  drop constraint if exists profiles_id_fkey;
+
+alter table public.profiles
   add constraint profiles_id_fkey
   foreign key (id) references auth.users (id) on delete cascade;
 
 alter table public.profiles
+  add column if not exists tenant_id uuid not null default gen_random_uuid();
+
+-- Ensure tenant rows exist for any existing profiles
+insert into public.tenants (id, display_name)
+select p.id, coalesce(p.full_name, 'My Business')
+from public.profiles p
+where not exists (select 1 from public.tenants t where t.id = p.id);
+
+-- Fix any existing rows that got a random tenant_id not present in tenants
+update public.profiles
+  set tenant_id = id
+  where tenant_id not in (select id from public.tenants);
+
+alter table public.profiles
+  drop constraint if exists profiles_tenant_id_fkey;
+
+alter table public.profiles
   add constraint profiles_tenant_id_fkey
   foreign key (tenant_id) references public.tenants (id) on delete cascade;
+
+alter table public.app_settings
+  drop constraint if exists app_settings_tenant_id_fkey;
 
 alter table public.app_settings
   add constraint app_settings_tenant_id_fkey
@@ -82,10 +105,10 @@ set search_path = public
 as $$
 begin
   insert into public.tenants (id, display_name)
-  values (new.id, coalesce(new.raw_user_meta_data->>''full_name'', ''My Business''));
+  values (new.id, coalesce(new.raw_user_meta_data->>'full_name', 'My Business'));
 
   insert into public.profiles (id, tenant_id, full_name)
-  values (new.id, new.id, new.raw_user_meta_data->>''full_name'');
+  values (new.id, new.id, new.raw_user_meta_data->>'full_name');
 
   insert into public.app_settings (tenant_id)
   values (new.id);

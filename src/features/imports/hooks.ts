@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createImportBatch,
-  getImportBatch,
   listImportBatches,
   createImportQueueItem,
   listImportQueue,
@@ -16,15 +15,6 @@ export function useImportBatches() {
   return useQuery({
     queryKey: IMPORT_BATCHES_KEY,
     queryFn: listImportBatches,
-    staleTime: 30_000,
-  });
-}
-
-export function useImportBatch(id: string | undefined) {
-  return useQuery({
-    queryKey: ["import-batch", id] as const,
-    queryFn: () => getImportBatch(id as string),
-    enabled: Boolean(id),
     staleTime: 30_000,
   });
 }

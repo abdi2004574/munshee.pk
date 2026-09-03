@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createOrderWithItems,
   getOrder,
-  getOrderItem,
   listOrders,
   softDeleteOrder,
   updateOrderStatus,
@@ -10,7 +9,6 @@ import {
   type ListOrdersFilters,
   type ListOrdersPagination,
 } from "./api";
-import type { OrderItem } from "@/lib/types";
 
 const ORDERS_KEY = ["orders"] as const;
 
@@ -29,15 +27,6 @@ export function useOrder(id: string | undefined) {
   return useQuery({
     queryKey: ["order", id] as const,
     queryFn: () => getOrder(id as string),
-    enabled: Boolean(id),
-    staleTime: 30_000,
-  });
-}
-
-export function useOrderItem(id: string | undefined) {
-  return useQuery({
-    queryKey: ["order-item", id] as const,
-    queryFn: () => getOrderItem(id as string),
     enabled: Boolean(id),
     staleTime: 30_000,
   });
@@ -74,5 +63,3 @@ export function useSoftDeleteOrder() {
     },
   });
 }
-
-export type { OrderItem };
