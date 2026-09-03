@@ -22,7 +22,8 @@ $$;
 -- 2. businesses table
 -- ============================================================================
 
-create table if not exists public.businesses (
+drop table if exists public.businesses cascade;
+create table public.businesses (
   id            uuid primary key default gen_random_uuid(),
   tenant_id     uuid not null references public.tenants(id) on delete cascade,
   slug          text not null unique,
@@ -33,6 +34,18 @@ create table if not exists public.businesses (
   updated_at    timestamptz not null default now(),
   deleted_at    timestamptz
 );
+
+alter table public.businesses
+  add column if not exists deleted_at timestamptz;
+
+alter table public.businesses
+  add column if not exists slug text;
+
+alter table public.businesses
+  add column if not exists display_name text;
+
+alter table public.businesses
+  add column if not exists views_count int default 0;
 
 create unique index if not exists businesses_slug_active_uidx
   on public.businesses (slug)
@@ -65,13 +78,13 @@ create trigger businesses_set_updated_at
   for each row execute function public.set_updated_at();
 
 grant select, insert, update, delete on public.businesses to authenticated;
-grant usage on sequence public.businesses_id_seq to authenticated;
 
 -- ============================================================================
 -- 3. business_facts table
 -- ============================================================================
 
-create table if not exists public.business_facts (
+drop table if exists public.business_facts cascade;
+create table public.business_facts (
   id            uuid primary key default gen_random_uuid(),
   tenant_id     uuid not null references public.tenants(id) on delete cascade,
   category      text not null check (category in (
@@ -127,13 +140,13 @@ create trigger business_facts_set_updated_at
   for each row execute function public.set_updated_at();
 
 grant select, insert, update, delete on public.business_facts to authenticated;
-grant usage on sequence public.business_facts_id_seq to authenticated;
 
 -- ============================================================================
 -- 4. audit_log table (append-only)
 -- ============================================================================
 
-create table if not exists public.audit_log (
+drop table if exists public.audit_log cascade;
+create table public.audit_log (
   id         uuid primary key default gen_random_uuid(),
   tenant_id  uuid not null references public.tenants(id) on delete cascade,
   fact_id    uuid references public.business_facts(id) on delete set null,
@@ -161,13 +174,13 @@ create policy audit_log_tenant_insert on public.audit_log
   for insert with check (tenant_id = auth.uid());
 
 grant select, insert on public.audit_log to authenticated;
-grant usage on sequence public.audit_log_id_seq to authenticated;
 
 -- ============================================================================
 -- 5. ask_logs table (append-only)
 -- ============================================================================
 
-create table if not exists public.ask_logs (
+drop table if exists public.ask_logs cascade;
+create table public.ask_logs (
   id         uuid primary key default gen_random_uuid(),
   tenant_id  uuid not null references public.tenants(id) on delete cascade,
   question   text not null,
@@ -189,11 +202,14 @@ create policy ask_logs_tenant_insert on public.ask_logs
   for insert with check (tenant_id = auth.uid());
 
 grant select, insert on public.ask_logs to authenticated;
-grant usage on sequence public.ask_logs_id_seq to authenticated;
 
 -- ============================================================================
 -- 6. public.public_profile view (read-only, public-facing confirmed facts)
 -- ============================================================================
+
+-- Ensure deleted_at exists on business_facts if table was created without it
+alter table public.business_facts
+  add column if not exists deleted_at timestamptz;
 
 create or replace view public.public_profile as
   select tenant_id, category, label, value
@@ -206,7 +222,10 @@ grant select on public.public_profile to anon, authenticated;
 -- 7. public.increment_views RPC
 -- ============================================================================
 
+drop function if exists public.increment_views(uuid);
+
 create or replace function public.increment_views(p_tenant_id uuid)
+
 returns void
 language plpgsql
 security definer
