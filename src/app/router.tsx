@@ -17,8 +17,10 @@ import { CustomerDetailPage } from "@/features/customers/pages/CustomerDetailPag
 import { SettingsPage } from "@/features/settings/pages/SettingsPage";
 import { ImportNewPage } from "@/features/imports/pages/ImportNewPage";
 import { ReviewQueuePage } from "@/features/reviews/pages/ReviewQueuePage";
+import { ReviewDetailPage } from "@/features/reviews/pages/ReviewDetailPage";
 import { ExtractTextPage } from "@/features/extraction/pages/ExtractTextPage";
 import { ExtractVisionPage } from "@/features/extraction/pages/ExtractVisionPage";
+import { ScrapePage } from "@/features/scraper/pages/ScrapePage";
 
 function ProtectedRoute() {
   const { data, isLoading } = useSession();
@@ -26,7 +28,7 @@ function ProtectedRoute() {
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center text-ink-muted">
-        Loading�
+        Loading\u2026
       </div>
     );
   }
@@ -48,7 +50,7 @@ function RootRedirect() {
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center text-ink-muted">
-        Loading�
+        Loading\u2026
       </div>
     );
   }
@@ -100,6 +102,8 @@ export const router = createBrowserRouter([
       { path: "import", element: <ImportNewPage /> },
       { path: "import/new", element: <Navigate to="/apps/import" replace /> },
       { path: "review", element: <ReviewQueuePage /> },
+      { path: "review/:id", element: <ReviewDetailPage /> },
+      { path: "scrape", element: <ScrapePage /> },
       { path: "extract/text", element: <ExtractTextPage /> },
       { path: "extract/vision", element: <ExtractVisionPage /> },
     ],
