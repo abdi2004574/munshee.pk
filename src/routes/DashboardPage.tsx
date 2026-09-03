@@ -107,6 +107,36 @@ export function DashboardPage() {
           automation features land in later phases.
         </p>
       </Card>
+
+      <Card className="p-6">
+        <h2 className="text-lg font-semibold text-ink">
+          Share your profile
+        </h2>
+        <p className="mt-1 text-sm text-ink-muted">
+          Share this link with customers to show your verified business profile.
+        </p>
+        <div className="mt-4 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              const url = `${window.location.origin}/profile/${profileQuery.data?.tenant_id}`;
+              void navigator.clipboard.writeText(url);
+              alert("Copied profile link");
+            }}
+            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-on-primary shadow-sm hover:bg-primary-hover"
+          >
+            Copy link
+          </button>
+          <a
+            href={`/profile/${profileQuery.data?.tenant_id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm font-medium text-primary underline-offset-2 hover:underline"
+          >
+            View profile
+          </a>
+        </div>
+      </Card>
     </div>
   );
 }

@@ -13,24 +13,28 @@ Required JSON schema:
 {
   "products": [
     {
-      "name": "string - product display name",
-      "sku": "string - product SKU if visible, otherwise null",
-      "description": "string - full product description",
-      "category": "string - product category",
-      "brand": "string - brand name if visible, otherwise null",
-      "status": "active | draft | archived - default to 'draft' if uncertain",
-      "tags": ["string"],
-      "weight_grams": "number | null - weight in grams if visible",
+      "name": {
+        "value": "string - product display name",
+        "confidence": "number 0-1 - how certain you are this value is correct",
+        "source_quote": "string - EXACT verbatim substring from the input text that supports this value, max 200 chars. If no clear snippet exists, set to null"
+      },
+      "sku": { "value": "string|null - product SKU if visible, otherwise null", "confidence": "number 0-1", "source_quote": "string|null - exact verbatim substring, max 200 chars, or null" },
+      "description": { "value": "string - full product description", "confidence": "number 0-1", "source_quote": "string|null - exact verbatim substring, max 200 chars, or null" },
+      "category": { "value": "string - product category", "confidence": "number 0-1", "source_quote": "string|null - exact verbatim substring, max 200 chars, or null" },
+      "brand": { "value": "string|null - brand name if visible, otherwise null", "confidence": "number 0-1", "source_quote": "string|null - exact verbatim substring, max 200 chars, or null" },
+      "status": { "value": "active | draft | archived - default to 'draft' if uncertain", "confidence": "number 0-1", "source_quote": "string|null - exact verbatim substring, max 200 chars, or null" },
+      "tags": { "value": ["string"], "confidence": "number 0-1", "source_quote": "string|null - exact verbatim substring, max 200 chars, or null" },
+      "weight_grams": { "value": "number | null - weight in grams if visible", "confidence": "number 0-1", "source_quote": "string|null - exact verbatim substring, max 200 chars, or null" },
       "variants": [
         {
-          "sku": "string - variant SKU",
-          "name": "string - variant name (e.g. 'Red / Large')",
-          "price": "number - price in PKR",
-          "compare_at_price": "number | null - original/MSRP if visible",
-          "cost_price": "number | null - COGS if visible",
-          "barcode": "string | null",
-          "options": { "color": "red", "size": "L" } - variant attributes",
-          "status": "active | draft | archived - default 'active'"
+          "sku": { "value": "string|null - variant SKU", "confidence": "number 0-1", "source_quote": "string|null - exact verbatim substring, max 200 chars, or null" },
+          "name": { "value": "string - variant name (e.g. 'Red / Large')", "confidence": "number 0-1", "source_quote": "string|null - exact verbatim substring, max 200 chars, or null" },
+          "price": { "value": "number - price in PKR", "confidence": "number 0-1", "source_quote": "string|null - exact verbatim substring, max 200 chars, or null" },
+          "compare_at_price": { "value": "number | null - original/MSRP if visible", "confidence": "number 0-1", "source_quote": "string|null - exact verbatim substring, max 200 chars, or null" },
+          "cost_price": { "value": "number | null - COGS if visible", "confidence": "number 0-1", "source_quote": "string|null - exact verbatim substring, max 200 chars, or null" },
+          "barcode": { "value": "string | null", "confidence": "number 0-1", "source_quote": "string|null - exact verbatim substring, max 200 chars, or null" },
+          "options": { "value": { "color": "red", "size": "L" } - variant attributes, "confidence": "number 0-1", "source_quote": "string|null - exact verbatim substring, max 200 chars, or null" },
+          "status": { "value": "active | draft | archived - default 'active'", "confidence": "number 0-1", "source_quote": "string|null - exact verbatim substring, max 200 chars, or null" }
         }
       ]
     }
@@ -39,8 +43,11 @@ Required JSON schema:
 
 Rules:
 - Extract every distinct product you can find.
-- Do NOT invent values. If a field is not present in the text, use null or [].
+- Do NOT invent values. If a field is not present in the text, use null for value and set confidence low (e.g. 0.1) with source_quote null.
+- confidence must reflect actual extraction certainty. Explicit values = high confidence. Inferred/implied = lower confidence. Never use a placeholder.
+- source_quote must be an exact substring of the original input. If no clear source snippet exists, set confidence low and source_quote to null. Do not fabricate quotes.
 - Prices must be numbers, not strings with currency symbols.
+- source_quote max 200 chars.
 - Return ONLY valid JSON. No markdown, no explanation, no preamble.`;
 
 const corsHeaders = {
@@ -81,10 +88,64 @@ function extractJson(content: string): unknown {
   throw new Error("No JSON found in model output");
 }
 
+type FieldValue = {
+  value: unknown;
+  confidence: unknown;
+  source_quote: unknown;
+};
+
+function isFieldObject(value: unknown): value is FieldValue {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    Object.prototype.hasOwnProperty.call(value, "value") &&
+    Object.prototype.hasOwnProperty.call(value, "confidence") &&
+    Object.prototype.hasOwnProperty.call(value, "source_quote")
+  );
+}
+
+function isValidVariant(variant: unknown): boolean {
+  if (!variant || typeof variant !== "object") return false;
+  const v = variant as Record<string, unknown>;
+  const fieldKeys = [
+    "sku",
+    "name",
+    "price",
+    "compare_at_price",
+    "cost_price",
+    "barcode",
+    "options",
+    "status",
+  ];
+  return fieldKeys.every((key) => isFieldObject(v[key]));
+}
+
+function isValidProduct(product: unknown): boolean {
+  if (!product || typeof product !== "object") return false;
+  const p = product as Record<string, unknown>;
+  const fieldKeys = [
+    "name",
+    "sku",
+    "description",
+    "category",
+    "brand",
+    "status",
+    "tags",
+    "weight_grams",
+  ];
+  if (!fieldKeys.every((key) => isFieldObject(p[key]))) return false;
+  if (Array.isArray(p.variants)) {
+    return p.variants.every((v) => isValidVariant(v));
+  }
+  return true;
+}
+
 function isValidProductsPayload(value: unknown): boolean {
   if (!value || typeof value !== "object") return false;
   const v = value as { products?: unknown };
-  return Array.isArray(v.products);
+  if (!Array.isArray(v.products)) return false;
+  return v.products.every((p) => isValidProduct(p));
 }
 
 Deno.serve(async (req: Request) => {

@@ -18,6 +18,7 @@ const navItems = [
   { to: "/apps/review", label: "Review", end: false },
   { to: "/apps/extract/text", label: "Extract Text", end: false },
   { to: "/apps/extract/vision", label: "Extract Vision", end: false },
+  { to: "/apps/ask", label: "Ask Munshee", end: false },
 ];
 
 export function AppShell({ children }: AppShellProps) {

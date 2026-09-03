@@ -1,4 +1,4 @@
-﻿// Supabase Edge Function: extract-vision
+// Supabase Edge Function: extract-vision
 // Runtime: Deno
 // Purpose: Extract structured product/variant data from a product image
 //          by calling OpenRouter (qwen/qwen-2.5-vl-72b).
@@ -13,24 +13,88 @@ Required JSON schema:
 {
   "products": [
     {
-      "name": "string - product display name",
-      "sku": "string - product SKU if visible, otherwise null",
-      "description": "string - full product description",
-      "category": "string - product category",
-      "brand": "string - brand name if visible, otherwise null",
-      "status": "active | draft | archived - default to 'draft' if uncertain",
-      "tags": ["string"],
-      "weight_grams": "number | null - weight in grams if visible",
+      "name": {
+        "value": "string - product display name",
+        "confidence": "number 0-1 - how certain you are this value is correct based on the image",
+        "source_quote": "string - EXACT verbatim text visible in the image that supports this value, max 200 chars. If no clear text snippet exists, set to null"
+      },
+      "sku": {
+        "value": "string - product SKU if visible, otherwise null",
+        "confidence": "number 0-1",
+        "source_quote": "string - EXACT text from image, max 200 chars, or null"
+      },
+      "description": {
+        "value": "string - full product description",
+        "confidence": "number 0-1",
+        "source_quote": "string - EXACT text from image, max 200 chars, or null"
+      },
+      "category": {
+        "value": "string - product category",
+        "confidence": "number 0-1",
+        "source_quote": "string - EXACT text from image, max 200 chars, or null"
+      },
+      "brand": {
+        "value": "string - brand name if visible, otherwise null",
+        "confidence": "number 0-1",
+        "source_quote": "string - EXACT text from image, max 200 chars, or null"
+      },
+      "status": {
+        "value": "active | draft | archived - default to 'draft' if uncertain",
+        "confidence": "number 0-1",
+        "source_quote": "string - EXACT text from image, max 200 chars, or null"
+      },
+      "tags": {
+        "value": ["string"],
+        "confidence": "number 0-1",
+        "source_quote": "string - EXACT text from image, max 200 chars, or null"
+      },
+      "weight_grams": {
+        "value": "number | null - weight in grams if visible",
+        "confidence": "number 0-1",
+        "source_quote": "string - EXACT text from image, max 200 chars, or null"
+      },
       "variants": [
         {
-          "sku": "string - variant SKU",
-          "name": "string - variant name (e.g. 'Red / Large')",
-          "price": "number - price in PKR",
-          "compare_at_price": "number | null - original/MSRP if visible",
-          "cost_price": "number | null - COGS if visible",
-          "barcode": "string | null",
-          "options": { "color": "red", "size": "L" } - variant attributes,
-          "status": "active | draft | archived - default 'active'"
+          "sku": {
+            "value": "string - variant SKU",
+            "confidence": "number 0-1",
+            "source_quote": "string - EXACT text from image, max 200 chars, or null"
+          },
+          "name": {
+            "value": "string - variant name (e.g. 'Red / Large')",
+            "confidence": "number 0-1",
+            "source_quote": "string - EXACT text from image, max 200 chars, or null"
+          },
+          "price": {
+            "value": "number - price in PKR",
+            "confidence": "number 0-1",
+            "source_quote": "string - EXACT text from image, max 200 chars, or null"
+          },
+          "compare_at_price": {
+            "value": "number | null - original/MSRP if visible",
+            "confidence": "number 0-1",
+            "source_quote": "string - EXACT text from image, max 200 chars, or null"
+          },
+          "cost_price": {
+            "value": "number | null - COGS if visible",
+            "confidence": "number 0-1",
+            "source_quote": "string - EXACT text from image, max 200 chars, or null"
+          },
+          "barcode": {
+            "value": "string | null",
+            "confidence": "number 0-1",
+            "source_quote": "string - EXACT text from image, max 200 chars, or null"
+          },
+          "options": {
+            "value": { "color": "red", "size": "L" } - variant attributes,
+            "confidence": "number 0-1",
+            "source_quote": "string - EXACT text from image, max 200 chars, or null"
+          },
+          "status": {
+            "value": "active | draft | archived - default 'active'",
+            "confidence": "number 0-1",
+            "source_quote": "string - EXACT text from image, max 200 chars, or null"
+          }
         }
       ]
     }
@@ -40,6 +104,8 @@ Required JSON schema:
 Rules:
 - Extract every distinct product you can see in the image.
 - Do NOT invent values. If a field is not visible, use null or [].
+- confidence must reflect actual extraction certainty. Explicit values = high confidence. Inferred/implied = lower confidence. Never use a placeholder.
+- source_quote must be an exact substring of the original image text. If no clear source snippet exists, set confidence low and source_quote to null. Do not fabricate quotes.
 - Prices must be numbers, not strings with currency symbols.
 - Return ONLY valid JSON. No markdown, no explanation, no preamble.`;
 
@@ -78,10 +144,65 @@ function extractJson(content: string): unknown {
   throw new Error("No JSON found in model output");
 }
 
+function isFieldObject(value: unknown): value is {
+  value: unknown;
+  confidence: number;
+  source_quote: string | null;
+} {
+  if (!value || typeof value !== "object") return false;
+  const v = value as Record<string, unknown>;
+  return (
+    "value" in v &&
+    "confidence" in v &&
+    "source_quote" in v &&
+    (v.confidence === null || typeof v.confidence === "number")
+  );
+}
+
+function isValidVariant(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  const v = value as Record<string, unknown>;
+  const requiredFields = [
+    "sku",
+    "name",
+    "price",
+    "compare_at_price",
+    "cost_price",
+    "barcode",
+    "options",
+    "status",
+  ];
+  return requiredFields.every(
+    (field) => isFieldObject((v as Record<string, unknown>)[field])
+  );
+}
+
+function isValidProduct(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  const v = value as Record<string, unknown>;
+  const requiredFields = [
+    "name",
+    "sku",
+    "description",
+    "category",
+    "brand",
+    "status",
+    "tags",
+    "weight_grams",
+  ];
+  const hasRequiredFields = requiredFields.every(
+    (field) => isFieldObject((v as Record<string, unknown>)[field])
+  );
+  const hasValidVariants = Array.isArray(v.variants)
+    ? v.variants.every(isValidVariant)
+    : true;
+  return hasRequiredFields && hasValidVariants;
+}
+
 function isValidProductsPayload(value: unknown): boolean {
   if (!value || typeof value !== "object") return false;
   const v = value as { products?: unknown };
-  return Array.isArray(v.products);
+  return Array.isArray(v.products) && v.products.every(isValidProduct);
 }
 
 function detectMimeAndBuildDataUrl(raw: string): string {

@@ -21,6 +21,8 @@ import { ReviewDetailPage } from "@/features/reviews/pages/ReviewDetailPage";
 import { ExtractTextPage } from "@/features/extraction/pages/ExtractTextPage";
 import { ExtractVisionPage } from "@/features/extraction/pages/ExtractVisionPage";
 import { ScrapePage } from "@/features/scraper/pages/ScrapePage";
+import { AskPage } from "@/features/ask/pages/AskPage";
+import { PublicProfilePage } from "@/features/public-profile/pages/PublicProfilePage";
 
 function ProtectedRoute() {
   const { data, isLoading } = useSession();
@@ -28,7 +30,7 @@ function ProtectedRoute() {
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center text-ink-muted">
-        Loading\u2026
+        Loading…
       </div>
     );
   }
@@ -50,7 +52,7 @@ function RootRedirect() {
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center text-ink-muted">
-        Loading\u2026
+        Loading…
       </div>
     );
   }
@@ -62,6 +64,10 @@ export const router = createBrowserRouter([
   {
     path: "/",
     element: <RootRedirect />,
+  },
+  {
+    path: "/profile/:tenantId",
+    element: <PublicProfilePage />,
   },
   {
     path: "/login",
@@ -106,6 +112,7 @@ export const router = createBrowserRouter([
       { path: "scrape", element: <ScrapePage /> },
       { path: "extract/text", element: <ExtractTextPage /> },
       { path: "extract/vision", element: <ExtractVisionPage /> },
+      { path: "ask", element: <AskPage /> },
     ],
   },
 ]);

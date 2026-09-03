@@ -1,7 +1,8 @@
-import { useCallback, useMemo, useState } from "react";
+ï»¿import { useCallback, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
-import { useImportQueue, useImportBatches } from "../../imports/hooks";
-import { useApproveImportItem, useRejectImportItem } from "../hooks";
+import { useQueryClient } from "@tanstack/react-query";
+import { useBusinessFacts } from "@/features/facts/hooks";
+import { useCreateAuditLog } from "@/features/audit/hooks";
 import { DataTable, type DataTableColumn } from "@/components/DataTable";
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
@@ -10,48 +11,49 @@ import { EmptyState } from "@/components/EmptyState";
 import { Pagination } from "@/components/Pagination";
 import { Select } from "@/components/Select";
 import { supabase } from "@/lib/supabase";
-import type { ImportQueueItem, JsonValue } from "@/lib/types";
+import type { Database } from "@/lib/types";
+
+type BusinessFact = Database["public"]["Tables"]["business_facts"]["Row"];
 
 const PAGE_SIZE = 25;
 
-function statusVariant(status: string): "success" | "warning" | "danger" | "default" {
-  if (status === "pending") return "warning";
-  if (status === "approved") return "success";
-  if (status === "rejected" || status === "error") return "danger";
+function statusVariant(
+  status: string,
+): "success" | "warning" | "danger" | "default" {
+  if (status === "needs_review") return "warning";
+  if (status === "confirmed") return "success";
+  if (status === "rejected") return "danger";
   return "default";
 }
 
 export function ReviewQueuePage() {
   const [params, setParams] = useSearchParams();
+  const qc = useQueryClient();
+  const createAuditLog = useCreateAuditLog();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [workingId, setWorkingId] = useState<string | null>(null);
   const [batchWorking, setBatchWorking] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  const batchId = params.get("batch_id") ?? "";
-  const tableName = params.get("table_name") ?? "";
+  const category = params.get("category") ?? "";
   const status = params.get("status") ?? "";
   const page = Math.max(1, Number(params.get("page") ?? "1") || 1);
 
   const filters = useMemo(
     () => ({
-      batch_id: batchId || undefined,
-      table_name: tableName || undefined,
+      category: category || undefined,
       status: status || undefined,
     }),
-    [batchId, tableName, status],
+    [category, status],
   );
 
-  const { data: items = [], isLoading } = useImportQueue(filters);
-  const { data: batches = [] } = useImportBatches();
-  const approve = useApproveImportItem();
-  const reject = useRejectImportItem();
+  const { data: facts = [], isLoading } = useBusinessFacts(filters);
 
-  const totalItems = items.length;
-  const paginatedItems = useMemo(
-    () => items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-    [items, page],
+  const totalItems = facts.length;
+  const paginatedFacts = useMemo(
+    () => facts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [facts, page],
   );
 
   const setParam = useCallback(
@@ -78,72 +80,69 @@ export function ReviewQueuePage() {
     setTimeout(() => setSuccess(null), 3000);
   }
 
-  async function insertIntoRealTable(
-    tableName: string,
-    payload: Record<string, JsonValue>,
-    queueItem: ImportQueueItem,
-  ): Promise<string> {
+  async function applyFactStatus(
+    fact: BusinessFact,
+    newStatus: "confirmed" | "rejected",
+  ): Promise<void> {
     const { data: authData } = await supabase.auth.getUser();
     if (!authData.user) throw new Error("Not authenticated");
+    const tenantId = authData.user.id;
 
-    const { data, error } = await supabase
-      .from(tableName as never)
-      .insert({
-        ...payload,
-        tenant_id: authData.user.id,
-        needs_review: true,
-        source_type: queueItem.source_type,
-        verbatim_quote: queueItem.verbatim_quote,
-        confidence_score: queueItem.confidence_score,
-      } as never)
-      .select("id")
-      .single();
-    if (error) throw error;
-    return (data as unknown as { id: string }).id;
+    const now = new Date().toISOString();
+    const { error: updateError } = await supabase
+      .from("business_facts" as never)
+      .update({ status: newStatus, updated_at: now } as never)
+      .eq("id", fact.id);
+    if (updateError) throw updateError;
+
+    await createAuditLog.mutateAsync({
+      tenant_id: tenantId,
+      fact_id: fact.id,
+      actor: tenantId,
+      action: newStatus === "confirmed" ? "confirm" : "delete",
+      old_value: { status: "needs_review" },
+      new_value: { status: newStatus },
+    });
+
+    qc.invalidateQueries({ queryKey: ["business-facts"] });
   }
 
-  async function approveQueueItem(queueItem: ImportQueueItem): Promise<void> {
-    const newRowId = await insertIntoRealTable(
-      queueItem.table_name,
-      queueItem.payload,
-      queueItem,
-    );
-    await approve.mutateAsync({ queueId: queueItem.id, targetRowId: newRowId });
-  }
-
-  async function handleApprove(item: ImportQueueItem) {
-    setApprovingId(item.id);
+  async function handleApprove(fact: BusinessFact) {
+    setWorkingId(fact.id);
     setError(null);
     setSuccess(null);
     try {
-      await approveQueueItem(item);
-      setSuccess("Item approved successfully.");
+      await applyFactStatus(fact, "confirmed");
+      setSuccess("Fact confirmed successfully.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to approve item");
+      setError(err instanceof Error ? err.message : "Failed to confirm fact");
     } finally {
-      setApprovingId(null);
+      setWorkingId(null);
     }
   }
 
-  async function handleReject(item: ImportQueueItem) {
+  async function handleReject(fact: BusinessFact) {
+    setWorkingId(fact.id);
     setError(null);
     setSuccess(null);
     try {
-      await reject.mutateAsync(item.id);
-      setSuccess("Item rejected.");
+      await applyFactStatus(fact, "rejected");
+      setSuccess("Fact rejected.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to reject item");
+      setError(err instanceof Error ? err.message : "Failed to reject fact");
+    } finally {
+      setWorkingId(null);
     }
   }
 
-  const pendingPaginated = useMemo(
-    () => paginatedItems.filter((i) => i.status === "pending"),
-    [paginatedItems],
+  const reviewablePaginated = useMemo(
+    () => paginatedFacts.filter((f) => f.status === "needs_review"),
+    [paginatedFacts],
   );
 
   const allVisibleSelected =
-    pendingPaginated.length > 0 &&
-    pendingPaginated.every((i) => selected.has(i.id));
+    reviewablePaginated.length > 0 &&
+    reviewablePaginated.every((f) => selected.has(f.id));
 
   function toggleOne(id: string) {
     setSelected((prev) => {
@@ -158,11 +157,11 @@ export function ReviewQueuePage() {
     setSelected((prev) => {
       if (allVisibleSelected) {
         const next = new Set(prev);
-        for (const item of pendingPaginated) next.delete(item.id);
+        for (const f of reviewablePaginated) next.delete(f.id);
         return next;
       }
       const next = new Set(prev);
-      for (const item of pendingPaginated) next.add(item.id);
+      for (const f of reviewablePaginated) next.add(f.id);
       return next;
     });
   }
@@ -172,25 +171,27 @@ export function ReviewQueuePage() {
     setBatchWorking(true);
     setError(null);
     setSuccess(null);
-    const targetItems = items.filter(
-      (i) => selected.has(i.id) && i.status === "pending",
+    const targets = facts.filter(
+      (f) => selected.has(f.id) && f.status === "needs_review",
     );
     const failures: string[] = [];
-    for (const item of targetItems) {
+    for (const fact of targets) {
       try {
-        await approveQueueItem(item);
+        await applyFactStatus(fact, "confirmed");
       } catch (err) {
         failures.push(
-          `${item.id}: ${err instanceof Error ? err.message : "Unknown error"}`,
+          `${fact.id}: ${err instanceof Error ? err.message : "Unknown error"}`,
         );
       }
     }
     setSelected(new Set());
     setBatchWorking(false);
     if (failures.length > 0) {
-      setError(`Approved with ${failures.length} failure(s): ${failures.join("; ")}`);
+      setError(
+        `Confirmed with ${failures.length} failure(s): ${failures.join("; ")}`,
+      );
     } else {
-      setSuccess(`Approved ${targetItems.length} item(s).`);
+      setSuccess(`Confirmed ${targets.length} fact(s).`);
     }
   }
 
@@ -199,56 +200,79 @@ export function ReviewQueuePage() {
     setBatchWorking(true);
     setError(null);
     setSuccess(null);
-    const targetItems = items.filter(
-      (i) => selected.has(i.id) && i.status === "pending",
+    const targets = facts.filter(
+      (f) => selected.has(f.id) && f.status === "needs_review",
     );
     const failures: string[] = [];
-    for (const item of targetItems) {
+    for (const fact of targets) {
       try {
-        await reject.mutateAsync(item.id);
+        await applyFactStatus(fact, "rejected");
       } catch (err) {
         failures.push(
-          `${item.id}: ${err instanceof Error ? err.message : "Unknown error"}`,
+          `${fact.id}: ${err instanceof Error ? err.message : "Unknown error"}`,
         );
       }
     }
     setSelected(new Set());
     setBatchWorking(false);
     if (failures.length > 0) {
-      setError(`Rejected with ${failures.length} failure(s): ${failures.join("; ")}`);
+      setError(
+        `Rejected with ${failures.length} failure(s): ${failures.join("; ")}`,
+      );
     } else {
-      setSuccess(`Rejected ${targetItems.length} item(s).`);
+      setSuccess(`Rejected ${targets.length} fact(s).`);
     }
   }
 
-  function renderPayloadPreview(payload: Record<string, JsonValue>): string {
-    const entries = Object.entries(payload).slice(0, 3);
-    if (entries.length === 0) return "—";
-    return entries.map(([k, v]) => `${k}: ${String(v)}`).join(", ");
-  }
-
-  const columns: DataTableColumn<ImportQueueItem>[] = useMemo(
+  const columns: DataTableColumn<BusinessFact>[] = useMemo(
     () => [
       {
         key: "select",
         header: "Select",
         render: (row) =>
-          row.status === "pending" ? (
+          row.status === "needs_review" ? (
             <input
               type="checkbox"
-              aria-label={`Select item ${row.id}`}
+              aria-label={`Select fact ${row.id}`}
               checked={selected.has(row.id)}
               onChange={() => toggleOne(row.id)}
               className="h-4 w-4 cursor-pointer rounded border-gray-300 text-brand-600 focus:ring-brand-500"
             />
           ) : (
-            <span className="text-xs text-ink-muted">—</span>
+            <span className="text-xs text-ink-muted">â€”</span>
           ),
       },
       {
-        key: "table_name",
-        header: "Table",
-        render: (row) => <Badge variant="info">{row.table_name}</Badge>,
+        key: "category",
+        header: "Category",
+        render: (row) => <Badge variant="info">{row.category}</Badge>,
+      },
+      {
+        key: "label",
+        header: "Label",
+        render: (row) => (
+          <span className="truncate block max-w-[200px]" title={row.label}>
+            {row.label}
+          </span>
+        ),
+      },
+      {
+        key: "value",
+        header: "Value",
+        render: (row) => (
+          <span
+            className="truncate block max-w-[300px]"
+            title={row.value ?? ""}
+          >
+            {row.value ?? "â€”"}
+          </span>
+        ),
+      },
+      {
+        key: "confidence",
+        header: "Confidence",
+        render: (row) =>
+          row.confidence != null ? `${Math.round(row.confidence * 100)}%` : "â€”",
       },
       {
         key: "source_type",
@@ -256,95 +280,81 @@ export function ReviewQueuePage() {
         render: (row) => <Badge variant="default">{row.source_type}</Badge>,
       },
       {
-        key: "confidence_score",
-        header: "Confidence",
-        render: (row) =>
-          row.confidence_score != null
-            ? `${Math.round(row.confidence_score * 100)}%`
-            : "—",
-      },
-      {
-        key: "payload",
-        header: "Payload preview",
-        render: (row) => (
-          <span className="truncate block max-w-[300px]" title={JSON.stringify(row.payload)}>
-            {renderPayloadPreview(row.payload)}
-          </span>
-        ),
-      },
-      {
-        key: "verbatim_quote",
-        header: "Verbatim",
+        key: "source_ref",
+        header: "Source Ref",
         render: (row) => {
-          const text = row.verbatim_quote ?? "";
-          return text.length > 50 ? `${text.slice(0, 50)}…` : text || "—";
+          const text = row.source_ref ?? "";
+          return (
+            <span
+              className="truncate block max-w-[200px]"
+              title={text}
+            >
+              {text.length > 50 ? `${text.slice(0, 50)}â€¦` : text || "â€”"}
+            </span>
+          );
         },
       },
       {
         key: "status",
         header: "Status",
-        render: (row) => <Badge variant={statusVariant(row.status)}>{row.status}</Badge>,
+        render: (row) => (
+          <Badge variant={statusVariant(row.status)}>{row.status}</Badge>
+        ),
       },
       {
         key: "actions",
         header: "Actions",
         render: (row) =>
-          row.status === "pending" ? (
+          row.status === "needs_review" ? (
             <div className="flex items-center gap-2">
               <Button
                 variant="primary"
-                disabled={approvingId === row.id}
+                disabled={workingId === row.id}
                 onClick={() => handleApprove(row)}
               >
-                {approvingId === row.id ? "Approving…" : "Approve"}
+                {workingId === row.id ? "Workingâ€¦" : "Approve"}
               </Button>
               <Button
                 variant="secondary"
-                disabled={approvingId === row.id}
+                disabled={workingId === row.id}
                 onClick={() => handleReject(row)}
               >
                 Reject
               </Button>
             </div>
           ) : (
-            <span className="text-xs text-ink-muted">—</span>
+            <span className="text-xs text-ink-muted">â€”</span>
           ),
       },
     ],
-    [selected, approvingId],
+    [selected, workingId],
   );
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold text-ink">Review Queue</h1>
-        <p className="text-sm text-ink-muted">Review and approve imported items.</p>
+        <p className="text-sm text-ink-muted">
+          Review and confirm business facts before they are used.
+        </p>
       </div>
 
       {error && <p className="text-sm text-danger">{error}</p>}
       {success && <p className="text-sm text-success">{success}</p>}
 
       <Card className="p-4">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <Select
-            label="Batch"
-            value={batchId}
-            onChange={(v) => setParam("batch_id", v)}
+            label="Category"
+            value={category}
+            onChange={(v) => setParam("category", v)}
             options={[
-              { value: "", label: "All batches" },
-              ...batches.map((b) => ({ value: b.id, label: b.file_name })),
-            ]}
-          />
-          <Select
-            label="Table"
-            value={tableName}
-            onChange={(v) => setParam("table_name", v)}
-            options={[
-              { value: "", label: "All tables" },
+              { value: "", label: "All categories" },
               { value: "products", label: "Products" },
-              { value: "product_variants", label: "Product Variants" },
               { value: "customers", label: "Customers" },
-              { value: "inventory_levels", label: "Inventory Levels" },
+              { value: "operations", label: "Operations" },
+              { value: "policy", label: "Policy" },
+              { value: "general", label: "General" },
             ]}
           />
           <Select
@@ -353,10 +363,9 @@ export function ReviewQueuePage() {
             onChange={(v) => setParam("status", v)}
             options={[
               { value: "", label: "All statuses" },
-              { value: "pending", label: "Pending" },
-              { value: "approved", label: "Approved" },
+              { value: "needs_review", label: "Needs Review" },
+              { value: "confirmed", label: "Confirmed" },
               { value: "rejected", label: "Rejected" },
-              { value: "error", label: "Error" },
             ]}
           />
         </div>
@@ -367,10 +376,10 @@ export function ReviewQueuePage() {
           <label className="flex items-center gap-2 text-sm text-ink">
             <input
               type="checkbox"
-              aria-label="Select all visible pending items"
+              aria-label="Select all visible reviewable facts"
               checked={allVisibleSelected}
               onChange={toggleAllVisible}
-              disabled={pendingPaginated.length === 0}
+              disabled={reviewablePaginated.length === 0}
               className="h-4 w-4 cursor-pointer rounded border-gray-300 text-brand-600 focus:ring-brand-500 disabled:cursor-not-allowed disabled:opacity-50"
             />
             Select All
@@ -385,7 +394,7 @@ export function ReviewQueuePage() {
             disabled={batchWorking || selected.size === 0}
             onClick={handleBatchApprove}
           >
-            {batchWorking ? "Working…" : "Approve Selected"}
+            {batchWorking ? "Workingâ€¦" : "Approve Selected"}
           </Button>
           <Button
             variant="secondary"
@@ -405,14 +414,14 @@ export function ReviewQueuePage() {
       </Card>
 
       <Card>
-        <DataTable<ImportQueueItem>
+        <DataTable<BusinessFact>
           columns={columns}
-          data={paginatedItems}
+          data={paginatedFacts}
           isLoading={isLoading}
           emptyState={
             <EmptyState
-              title="No items pending review"
-              description="Imported items will appear here for review."
+              title="No facts pending review"
+              description="Business facts that need confirmation will appear here."
             />
           }
         />

@@ -1,45 +1,132 @@
-# Munshee.pk
-Pakistan's first Business OS.
+﻿# Munshee.pk
 
-Phase 1.1 — Foundation.
+Pakistan's first Business Brain OS — an AI-driven operating system for online sellers that extracts, verifies, and publishes business facts.
 
-## Status
+## Overview
 
-- Foundation scaffolding: **real, in place.**
-- Supabase client wiring: **real, but runtime-untested-pending-keys.** Auth will not work until you supply a real Supabase project URL + anon key and run the migration.
-- No mocked auth, no stubbed Supabase, no Gemini, no AI/LLM, no scraping, no HITL, no catalog/orders/inventory/CSV. Those belong to later phases.
+Munshee.pk ingests merchant inputs (spreadsheets, product images, competitor pages) and uses AI + scraping to extract structured **business facts**. Those facts land in a human **review queue**, where a confirm/reject step guarantees accuracy. Once confirmed, facts flow into operational **commerce tables** (products, variants, inventory, orders, customers) and into a **public profile page** that represents the business on the open web.
 
-## Stack
+## Current Status
 
-- React 19, TypeScript (strict), Vite 5, React Router 7 (library mode), Tailwind 3.4, TanStack Query v5, Supabase JS v2, Cloudflare Pages (via `@cloudflare/vite-plugin`).
+- **Real, code-complete:**
+  - React 19 shell with React Router 7
+  - Supabase auth (PKCE flow)
+  - Commerce schema + tables (`products`, `variants`, `orders`, `customers`, `inventory`)
+  - CSV import -> fact extraction -> review queue
+  - OpenRouter-backed Edge Functions: `extract-text` (text), `extract-vision` (vision), `ask-munshee` (Q&A)
+  - Playwright scraper service (`scraper/`)
+  - Public, no-auth `/profile/:tenantId` profile page
+  - "Ask Munshee" chat
+- **Real but runtime-untested — pending live credentials:**
+  - Every Supabase-dependent feature requires a **live Supabase project** with all migrations applied. Auth, commerce, the review queue, extraction, and the chat will not run until you supply `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, the `OPENROUTER_API_KEY` secret, and deploy the Edge Functions.
+- **Not yet built:**
+  - Nothing. All originally planned features are implemented. There are no stubbed or missing phase items remaining.
+
+## Architecture
+
+Munshee is built on a single **Business Brain** data model.
+
+1. `business_facts` — the single source of truth. Each row is one claim about the business: `category`, `label`, `value`, `confidence`, `source_type`, `source_ref`, `status` (`needs_review` -> `confirmed` -> `rejected`).
+2. `audit_log` — append-only trail of every confirm/edit/delete/import action on a fact, with `old_value`/`new_value` JSONB.
+3. `ask_logs` — append-only record of every question asked of Munshee, used as conversational training data.
+4. Commerce tables (`products`, `variants`, `customers`, `orders`, `inventory`, ...) — **operational consumers** of confirmed facts; facts are the upstream, commerce is the downstream.
+5. `public_profile` — a **read-only view** that exposes only `confirmed` facts to unauthenticated visitors on `/profile/:tenantId`.
+
+```mermaid
+graph LR
+  Inputs[Merchant inputs] --> Extract[AI / Scraper extracts facts]
+  Extract --> Facts[(business_facts)]
+  Facts --> Review[Review queue]
+  Review -->|confirm| Confirmed[(confirmed facts)]
+  Confirmed --> Commerce[(commerce tables)]
+  Confirmed --> Public[(public_profile view)]
+  Q[/Questions/] --> Ask[ask-munshee]
+  Ask --> AskLogs[(ask_logs)]
+```
 
 ## Setup
 
-1. Create a Supabase project at https://supabase.com
+1. Create a Supabase project at https://supabase.com.
 2. Copy `.env.example` to `.env.local` and fill in:
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
    - `VITE_SUPABASE_REDIRECT_URL` (default `http://localhost:5173/auth/callback` for local dev)
-3. Open the Supabase SQL Editor for your project and run `supabase/migrations/0001_init.sql` in full.
-4. Install and run:
+3. Open the Supabase SQL Editor for your project and run **all** migrations, in order:
+   - `supabase/migrations/0001_init.sql`
+   - `supabase/migrations/0002_commerce.sql`
+   - `supabase/migrations/0003_commerce_extras.sql`
+   - `supabase/migrations/0004_provenance.sql`
+   - `supabase/migrations/0005_business_facts.sql`
+4. Set the OpenRouter secret in the Supabase Dashboard -> **Edge Functions -> Secrets**:
+   - `OPENROUTER_API_KEY`
+5. Deploy the Edge Functions:
+   ```bash
+   npx supabase login
+   npx supabase link --project-ref <your-project-ref>
+   npx supabase functions deploy extract-text
+   npx supabase functions deploy extract-vision
+   npx supabase functions deploy ask-munshee
+   ```
+6. (Optional) Run the Playwright scraper service locally — see `scraper/README.md`.
+7. Install dependencies and start the dev server:
    ```bash
    pnpm install
    pnpm dev
    ```
-5. Open http://localhost:5173
+8. Open http://localhost:5173.
 
-## Deploy (Cloudflare Pages)
+## Stack
 
-- Build command: `pnpm build` (or `pnpm cf:build`)
-- Output directory: `dist`
-- Pages project name: `munshee-pk`
-- Add the same env vars in the Pages dashboard.
+- Frontend: React 19, TypeScript 5.x (strict), Vite 6, React Router 7, Tailwind 3.4, TanStack Query v5
+- Backend: Supabase (Postgres, Auth PKCE, Edge Functions on Deno)
+- LLMs via OpenRouter (server-side only):
+  - `meta-llama/llama-3.3-70b` — text extraction + Q&A
+  - `qwen/qwen-2.5-vl-72b` — vision extraction
+- Scraper: Playwright (Node.js + Express microservice, deploy separately on Render/Railway)
+- Hosting: React frontend on Cloudflare Pages (`@cloudflare/vite-plugin`); functions + DB on Supabase
 
 ## Scripts
 
-- `pnpm dev` — local dev server
-- `pnpm build` — typecheck + production build
-- `pnpm cf:build` — production build (CF Pages)
-- `pnpm preview` — preview production build
-- `pnpm typecheck` — type-check only
-- `pnpm lint` — eslint
+| Command | What it does |
+| --- | --- |
+| `pnpm dev` | Local dev server (Vite) |
+| `pnpm build` | `tsc -b` typecheck + production Vite build |
+| `pnpm cf:build` | Production build for Cloudflare Pages |
+| `pnpm preview` | Preview the production build locally |
+| `pnpm typecheck` | Type-check only (`tsc --noEmit`) |
+
+## Key Routes
+
+| Route | Purpose |
+| --- | --- |
+| `/login`, `/signup`, `/auth/callback` | Auth (PKCE) |
+| `/` | Redirect to `/dashboard` or `/login` |
+| `/dashboard` | Authenticated dashboard |
+| `/apps/products[/new][/:id]` | Products + variants |
+| `/apps/orders[/new][/:id]` | Orders |
+| `/apps/customers[/new][/:id]` | Customers |
+| `/apps/import` | CSV import |
+| `/apps/review[/:id]` | Fact review queue (approve / reject) |
+| `/apps/extract/text` | Extract structured facts from pasted text (OpenRouter) |
+| `/apps/extract/vision` | Extract structured facts from an image (OpenRouter vision) |
+| `/apps/scrape` | Trigger a Playwright scrape of a URL |
+| `/apps/ask` | Ask Munshee chat |
+| `/profile/:tenantId` | Public business profile — no auth required |
+
+## Flagged Costs
+
+- **Supabase** (free tier): 500 MB database, 50k monthly active users. Auth + commerce + functions usage fits this tier for development and small pilots.
+- **Cloudflare Pages**: free.
+- **OpenRouter**: the free tier is heavily rate-limited for the heavy models used here (~20-50 requests/day). **$5 minimum top-up is recommended** for any real usage; treat the free tier as smoke-test-only.
+
+## Notes
+
+- No Gemini anywhere in the codebase — all LLM calls go through OpenRouter.
+- All LLM calls are server-side via Supabase Edge Functions; no model keys ever reach the browser.
+- Row-level security is enabled on every table, scoped to `tenant_id = auth.uid()`.
+- Money is stored as `numeric(12,2)` in Postgres and rendered through the `<Money>` component (`src/components/Money.tsx`).
+
+## Contributing
+
+Pull requests are welcome. Run `pnpm typecheck` before opening one; `pnpm build` must pass.
+

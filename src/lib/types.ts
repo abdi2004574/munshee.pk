@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -73,6 +73,146 @@ export interface Database {
           timezone?: string;
           created_at?: string;
           updated_at?: string;
+        };
+      };
+      businesses: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          slug: string;
+          display_name: string;
+          description: string | null;
+          views_count: number;
+          created_at: string;
+          updated_at: string;
+          deleted_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          tenant_id: string;
+          slug: string;
+          display_name: string;
+          description?: string | null;
+          views_count?: number;
+          created_at?: string;
+          updated_at?: string;
+          deleted_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          tenant_id?: string;
+          slug?: string;
+          display_name?: string;
+          description?: string | null;
+          views_count?: number;
+          created_at?: string;
+          updated_at?: string;
+          deleted_at?: string | null;
+        };
+      };
+      business_facts: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          category: string;
+          label: string;
+          value: string;
+          confidence: number | null;
+          status: string;
+          source_type: string;
+          source_ref: string | null;
+          linked_table: string | null;
+          linked_row_id: string | null;
+          created_at: string;
+          updated_at: string;
+          deleted_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          tenant_id: string;
+          category: string;
+          label: string;
+          value: string;
+          confidence?: number | null;
+          status?: string;
+          source_type: string;
+          source_ref?: string | null;
+          linked_table?: string | null;
+          linked_row_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          deleted_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          tenant_id?: string;
+          category?: string;
+          label?: string;
+          value?: string;
+          confidence?: number | null;
+          status?: string;
+          source_type?: string;
+          source_ref?: string | null;
+          linked_table?: string | null;
+          linked_row_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          deleted_at?: string | null;
+        };
+      };
+      audit_log: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          fact_id: string | null;
+          actor: string;
+          action: string;
+          old_value: Record<string, unknown> | null;
+          new_value: Record<string, unknown> | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          tenant_id: string;
+          fact_id?: string | null;
+          actor: string;
+          action: string;
+          old_value?: Record<string, unknown> | null;
+          new_value?: Record<string, unknown> | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          tenant_id?: string;
+          fact_id?: string | null;
+          actor?: string;
+          action?: string;
+          old_value?: Record<string, unknown> | null;
+          new_value?: Record<string, unknown> | null;
+          created_at?: string;
+        };
+      };
+      ask_logs: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          question: string;
+          answer: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          tenant_id: string;
+          question: string;
+          answer: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          tenant_id?: string;
+          question?: string;
+          answer?: string;
+          created_at?: string;
         };
       };
     };
@@ -253,7 +393,7 @@ export interface ImportBatch {
   error_log: Record<string, JsonValue> | null;
   created_at: string;
   updated_at: string;
-} 
+}
 
 export type ImportBatchInsert = Omit<ImportBatch, "id" | "created_at" | "updated_at"> &
   Partial<Pick<ImportBatch, "id" | "created_at" | "updated_at">>;
@@ -274,10 +414,21 @@ export interface ImportQueueItem {
   target_row_id: string | null;
   created_at: string;
   updated_at: string;
-} 
+}
 
 export type ImportQueueItemInsert = Omit<
   ImportQueueItem,
   "id" | "created_at" | "updated_at"
 > &
   Partial<Pick<ImportQueueItem, "id" | "created_at" | "updated_at">>;
+
+export type Business = Database["public"]["Tables"]["businesses"]["Row"];
+export type BusinessInsert = Database["public"]["Tables"]["businesses"]["Insert"];
+export type BusinessUpdate = Database["public"]["Tables"]["businesses"]["Update"];
+
+export type BusinessFact = Database["public"]["Tables"]["business_facts"]["Row"];
+export type BusinessFactInsert = Database["public"]["Tables"]["business_facts"]["Insert"];
+export type BusinessFactUpdate = Database["public"]["Tables"]["business_facts"]["Update"];
+
+export type AuditLog = Database["public"]["Tables"]["audit_log"]["Row"];
+export type AskLog = Database["public"]["Tables"]["ask_logs"]["Row"];

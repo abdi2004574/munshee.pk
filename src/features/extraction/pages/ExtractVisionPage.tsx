@@ -6,12 +6,10 @@ import { Input } from "@/components/Input";
 import { Badge } from "@/components/Badge";
 import { Money } from "@/components/Money";
 import { useExtractVision } from "../hooks";
-import {
-  useCreateImportBatch,
-  useCreateImportQueueItem,
-} from "@/features/imports/hooks";
+import { useCreateBusinessFacts } from "@/features/facts/hooks";
+import { useCreateAuditLog } from "@/features/audit/hooks";
 import { supabase } from "@/lib/supabase";
-import type { JsonValue } from "@/lib/types";
+import type { BusinessFactInsert } from "@/features/facts/api";
 import type { ExtractedProduct, ExtractedVariant } from "../api";
 
 const TRUNCATE_DESCRIPTION = 220;
@@ -54,33 +52,33 @@ function ProductsResult({ products }: ProductsResultProps) {
   return (
     <div className="space-y-3">
       {products.map((product, idx) => (
-        <Card key={`${product.sku ?? product.name}-${idx}`} className="p-4">
+        <Card key={`${product.sku.value ?? product.name.value}-${idx}`} className="p-4">
           <div className="space-y-2">
             <div className="flex items-start justify-between gap-3">
-              <h3 className="text-base font-semibold text-ink">{product.name}</h3>
-              {product.sku && (
-                <Badge variant="info">SKU: {product.sku}</Badge>
+              <h3 className="text-base font-semibold text-ink">{product.name.value}</h3>
+              {product.sku.value && (
+                <Badge variant="info">SKU: {product.sku.value}</Badge>
               )}
             </div>
 
             <div className="flex flex-wrap gap-2 text-xs text-ink-muted">
-              {product.category && (
+              {product.category.value && (
                 <span>
                   <span className="font-medium text-ink">Category:</span>{" "}
-                  {product.category}
+                  {product.category.value}
                 </span>
               )}
-              {product.brand && (
+              {product.brand.value && (
                 <span>
                   <span className="font-medium text-ink">Brand:</span>{" "}
-                  {product.brand}
+                  {product.brand.value}
                 </span>
               )}
             </div>
 
-            {product.description && (
+            {product.description.value && (
               <p className="text-sm text-ink-muted">
-                {truncate(product.description, TRUNCATE_DESCRIPTION)}
+                {truncate(product.description.value, TRUNCATE_DESCRIPTION)}
               </p>
             )}
 
@@ -90,16 +88,16 @@ function ProductsResult({ products }: ProductsResultProps) {
                 <ul className="space-y-1">
                   {product.variants.map((variant: ExtractedVariant, vIdx) => (
                     <li
-                      key={`${variant.sku ?? variant.name ?? "variant"}-${vIdx}`}
+                      key={`${variant.sku.value ?? variant.name.value ?? "variant"}-${vIdx}`}
                       className="flex items-center justify-between text-sm"
                     >
                       <span className="text-ink">
-                        {variant.name ?? variant.sku ?? `Variant ${vIdx + 1}`}
+                        {variant.name.value ?? variant.sku.value ?? `Variant ${vIdx + 1}`}
                       </span>
-                      {variant.price != null && (
+                      {variant.price.value != null && (
                         <Money
-                          value={variant.price}
-                          currency={variant.currency ?? "PKR"}
+                          value={variant.price.value}
+                          currency="PKR"
                         />
                       )}
                     </li>
@@ -108,9 +106,9 @@ function ProductsResult({ products }: ProductsResultProps) {
               </div>
             )}
 
-            {product.tags && product.tags.length > 0 && (
+            {product.tags.value && product.tags.value.length > 0 && (
               <div className="flex flex-wrap gap-1.5 pt-1">
-                {product.tags.map((tag) => (
+                {product.tags.value.map((tag) => (
                   <Badge key={tag} variant="default">
                     {tag}
                   </Badge>
@@ -124,11 +122,97 @@ function ProductsResult({ products }: ProductsResultProps) {
   );
 }
 
+type ProductFieldKey =
+  | "name"
+  | "sku"
+  | "description"
+  | "category"
+  | "brand"
+  | "status"
+  | "tags"
+  | "weight_grams";
+
+const PRODUCT_FIELD_KEYS: ProductFieldKey[] = [
+  "name",
+  "sku",
+  "description",
+  "category",
+  "brand",
+  "status",
+  "tags",
+  "weight_grams",
+];
+
+const VARIANT_PRICING_FIELDS = ["price", "compare_at_price", "cost_price"] as const;
+const VARIANT_PRODUCT_FIELDS = ["sku", "name", "barcode", "options", "status"] as const;
+
+function buildFacts(
+  products: ExtractedProduct[],
+  tenantId: string,
+  sourceRef: string,
+): BusinessFactInsert[] {
+  const facts: BusinessFactInsert[] = [];
+
+  for (const product of products) {
+    for (const key of PRODUCT_FIELD_KEYS) {
+      const field = product[key];
+      facts.push({
+        tenant_id: tenantId,
+        category: "product",
+        label: key,
+        value: String(field.value),
+        confidence: field.confidence,
+        source_ref: sourceRef,
+        source_type: "vision_extraction",
+        linked_table: "products",
+        linked_row_id: null,
+        status: "needs_review",
+      });
+    }
+
+    for (const variant of product.variants ?? []) {
+      for (const key of VARIANT_PRICING_FIELDS) {
+        const field = variant[key];
+        facts.push({
+          tenant_id: tenantId,
+          category: "pricing",
+          label: key,
+          value: String(field.value),
+          confidence: field.confidence,
+          source_ref: sourceRef,
+          source_type: "vision_extraction",
+          linked_table: "product_variants",
+          linked_row_id: null,
+          status: "needs_review",
+        });
+      }
+
+      for (const key of VARIANT_PRODUCT_FIELDS) {
+        const field = variant[key];
+        facts.push({
+          tenant_id: tenantId,
+          category: "product",
+          label: key,
+          value: String(field.value),
+          confidence: field.confidence,
+          source_ref: sourceRef,
+          source_type: "vision_extraction",
+          linked_table: "product_variants",
+          linked_row_id: null,
+          status: "needs_review",
+        });
+      }
+    }
+  }
+
+  return facts;
+}
+
 export function ExtractVisionPage() {
   const navigate = useNavigate();
   const extract = useExtractVision();
-  const createBatch = useCreateImportBatch();
-  const createQueueItem = useCreateImportQueueItem();
+  const createBusinessFacts = useCreateBusinessFacts();
+  const createAuditLog = useCreateAuditLog();
 
   const [imageUrl, setImageUrl] = useState("");
   const [fileDataUrl, setFileDataUrl] = useState<string | null>(null);
@@ -140,7 +224,7 @@ export function ExtractVisionPage() {
   const result = extract.data;
   const products = result?.products ?? [];
 
-  const previewUrl = fileDataUrl ?? (imageUrl.trim() || null);
+  const previewUrl = fileDataUrl ?? (imageUrl.trim() || "");
   const hasInput = Boolean(fileDataUrl) || imageUrl.trim().length > 0;
   const canExtract = hasInput && !extract.isPending;
   const canSave = products.length > 0 && !saving;
@@ -190,41 +274,27 @@ export function ExtractVisionPage() {
       const tenantId = sessionData.session?.user.id;
       if (!tenantId) throw new Error("Not authenticated");
 
-      const verbatim = fileName
+      const sourceRef = fileName
         ? `image:${fileName}`
-        : imageUrl.trim().slice(0, 500);
+        : imageUrl.trim() || "";
 
-      const batch = await createBatch.mutateAsync({
+      const factsArray = buildFacts(products, tenantId, sourceRef);
+
+      await createBusinessFacts.mutateAsync(factsArray);
+
+      await createAuditLog.mutateAsync({
         tenant_id: tenantId,
-        file_name: "AI Vision Extraction",
-        table_name: "products",
-        total_rows: products.length,
-        processed_rows: 0,
-        status: "review",
-        error_log: null,
+        fact_id: null,
+        actor: tenantId,
+        action: "import",
+        old_value: null,
+        new_value: { source_type: "vision_extraction", facts_count: factsArray.length },
       });
 
-      for (const product of products) {
-        await createQueueItem.mutateAsync({
-          tenant_id: tenantId,
-          batch_id: batch.id,
-          table_name: "products",
-          payload: product as unknown as Record<string, JsonValue>,
-          source_type: "ai_extraction",
-          confidence_score: null,
-          verbatim_quote: verbatim,
-          needs_review: true,
-          reviewed_at: null,
-          status: "pending",
-          error_message: null,
-          target_row_id: null,
-        });
-      }
-
-      navigate(`/apps/review?batch_id=${batch.id}`);
+      navigate(`/apps/review`);
     } catch (err) {
       setSaveError(
-        err instanceof Error ? err.message : "Failed to save to review queue",
+        err instanceof Error ? err.message : "Failed to save facts",
       );
     } finally {
       setSaving(false);
@@ -326,7 +396,7 @@ export function ExtractVisionPage() {
 
           <div className="flex justify-end">
             <Button onClick={onSaveToQueue} disabled={!canSave}>
-              {saving ? "Saving…" : "Save to Review Queue"}
+              {saving ? "Saving…" : "Save to Facts"}
             </Button>
           </div>
         </div>

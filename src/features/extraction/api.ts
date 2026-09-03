@@ -1,21 +1,32 @@
 import { supabase } from "@/lib/supabase";
 
+export interface ExtractedField<T = unknown> {
+  value: T;
+  confidence: number | null;
+  source_quote: string | null;
+}
+
 export interface ExtractedVariant {
-  sku?: string;
-  name?: string;
-  price?: number;
-  currency?: string;
-  options?: Record<string, unknown>;
+  sku: ExtractedField<string | null>;
+  name: ExtractedField<string | null>;
+  price: ExtractedField<number | null>;
+  compare_at_price: ExtractedField<number | null>;
+  cost_price: ExtractedField<number | null>;
+  barcode: ExtractedField<string | null>;
+  options: ExtractedField<Record<string, unknown>>;
+  status: ExtractedField<string>;
 }
 
 export interface ExtractedProduct {
-  name: string;
-  sku?: string;
-  category?: string;
-  brand?: string;
-  description?: string;
-  tags?: string[];
-  variants?: ExtractedVariant[];
+  name: ExtractedField<string>;
+  sku: ExtractedField<string | null>;
+  description: ExtractedField<string | null>;
+  category: ExtractedField<string | null>;
+  brand: ExtractedField<string | null>;
+  status: ExtractedField<string>;
+  tags: ExtractedField<string[]>;
+  weight_grams: ExtractedField<number | null>;
+  variants: ExtractedVariant[];
 }
 
 export interface ExtractTextResult {
