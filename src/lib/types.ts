@@ -241,3 +241,43 @@ export type OrderItemInsert = Omit<
   Partial<Pick<OrderItem, "id" | "created_at" | "updated_at" | "deleted_at">>;
 
 export type OrderItemUpdate = Partial<OrderItemInsert>;
+
+export interface ImportBatch {
+  id: string;
+  tenant_id: string;
+  file_name: string;
+  table_name: "products" | "product_variants" | "customers" | "inventory_levels";
+  total_rows: number;
+  processed_rows: number;
+  status: "pending" | "processing" | "review" | "completed" | "failed";
+  error_log: Record<string, JsonValue> | null;
+  created_at: string;
+  updated_at: string;
+} 
+
+export type ImportBatchInsert = Omit<ImportBatch, "id" | "created_at" | "updated_at"> &
+  Partial<Pick<ImportBatch, "id" | "created_at" | "updated_at">>;
+
+export interface ImportQueueItem {
+  id: string;
+  tenant_id: string;
+  batch_id: string;
+  table_name: string;
+  payload: Record<string, JsonValue>;
+  source_type: string;
+  confidence_score: number | null;
+  verbatim_quote: string | null;
+  needs_review: boolean;
+  reviewed_at: string | null;
+  status: "pending" | "approved" | "rejected" | "error";
+  error_message: string | null;
+  target_row_id: string | null;
+  created_at: string;
+  updated_at: string;
+} 
+
+export type ImportQueueItemInsert = Omit<
+  ImportQueueItem,
+  "id" | "created_at" | "updated_at"
+> &
+  Partial<Pick<ImportQueueItem, "id" | "created_at" | "updated_at">>;
