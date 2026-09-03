@@ -1,4 +1,5 @@
-﻿# Munshee.pk
+# Munshee.pk
+Pakistan's first Business OS.
 
 Phase 1.1 — Foundation.
 
