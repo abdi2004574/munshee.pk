@@ -17,6 +17,8 @@ import { CustomerDetailPage } from "@/features/customers/pages/CustomerDetailPag
 import { SettingsPage } from "@/features/settings/pages/SettingsPage";
 import { ImportNewPage } from "@/features/imports/pages/ImportNewPage";
 import { ReviewQueuePage } from "@/features/reviews/pages/ReviewQueuePage";
+import { ExtractTextPage } from "@/features/extraction/pages/ExtractTextPage";
+import { ExtractVisionPage } from "@/features/extraction/pages/ExtractVisionPage";
 
 function ProtectedRoute() {
   const { data, isLoading } = useSession();
@@ -98,6 +100,8 @@ export const router = createBrowserRouter([
       { path: "import", element: <ImportNewPage /> },
       { path: "import/new", element: <Navigate to="/apps/import" replace /> },
       { path: "review", element: <ReviewQueuePage /> },
+      { path: "extract/text", element: <ExtractTextPage /> },
+      { path: "extract/vision", element: <ExtractVisionPage /> },
     ],
   },
 ]);
