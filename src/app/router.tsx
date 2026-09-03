@@ -15,6 +15,8 @@ import { CustomersListPage } from "@/features/customers/pages/CustomersListPage"
 import { CustomerNewPage } from "@/features/customers/pages/CustomerNewPage";
 import { CustomerDetailPage } from "@/features/customers/pages/CustomerDetailPage";
 import { SettingsPage } from "@/features/settings/pages/SettingsPage";
+import { ImportNewPage } from "@/features/imports/pages/ImportNewPage";
+import { ReviewQueuePage } from "@/features/reviews/pages/ReviewQueuePage";
 
 function ProtectedRoute() {
   const { data, isLoading } = useSession();
@@ -22,7 +24,7 @@ function ProtectedRoute() {
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center text-ink-muted">
-        Loading…
+        Loadingï¿½
       </div>
     );
   }
@@ -44,7 +46,7 @@ function RootRedirect() {
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center text-ink-muted">
-        Loading…
+        Loadingï¿½
       </div>
     );
   }
@@ -93,6 +95,9 @@ export const router = createBrowserRouter([
       { path: "customers/new", element: <CustomerNewPage /> },
       { path: "customers/:id", element: <CustomerDetailPage /> },
       { path: "settings", element: <SettingsPage /> },
+      { path: "import", element: <ImportNewPage /> },
+      { path: "import/new", element: <Navigate to="/apps/import" replace /> },
+      { path: "review", element: <ReviewQueuePage /> },
     ],
   },
 ]);

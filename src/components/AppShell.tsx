@@ -13,6 +13,8 @@ const navItems = [
   { to: "/apps/orders", label: "Orders", end: false },
   { to: "/apps/customers", label: "Customers", end: false },
   { to: "/apps/settings", label: "Settings", end: false },
+  { to: "/apps/import", label: "Import", end: false },
+  { to: "/apps/review", label: "Review", end: false },
 ];
 
 export function AppShell({ children }: AppShellProps) {
