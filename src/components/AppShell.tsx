@@ -14,6 +14,7 @@ const navItems = [
   { to: "/apps/customers", label: "Customers", end: false },
   { to: "/apps/settings", label: "Settings", end: false },
   { to: "/apps/import", label: "Import", end: false },
+  { to: "/apps/scrape", label: "Scrape", end: false },
   { to: "/apps/review", label: "Review", end: false },
   { to: "/apps/extract/text", label: "Extract Text", end: false },
   { to: "/apps/extract/vision", label: "Extract Vision", end: false },
