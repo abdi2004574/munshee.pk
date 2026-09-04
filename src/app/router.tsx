@@ -22,6 +22,8 @@ import { ExtractTextPage } from "@/features/extraction/pages/ExtractTextPage";
 import { ExtractVisionPage } from "@/features/extraction/pages/ExtractVisionPage";
 import { ScrapePage } from "@/features/scraper/pages/ScrapePage";
 import { AskPage } from "@/features/ask/pages/AskPage";
+import { SocialConnectPage } from "@/features/social/pages/SocialConnectPage";
+import { WhatsappExportPage } from "@/features/whatsapp/pages/WhatsappExportPage";
 import { PublicProfilePage } from "@/features/public-profile/pages/PublicProfilePage";
 
 function ProtectedRoute() {
@@ -113,6 +115,8 @@ export const router = createBrowserRouter([
       { path: "extract/text", element: <ExtractTextPage /> },
       { path: "extract/vision", element: <ExtractVisionPage /> },
       { path: "ask", element: <AskPage /> },
+      { path: "social", element: <SocialConnectPage /> },
+      { path: "whatsapp", element: <WhatsappExportPage /> },
     ],
   },
 ]);
