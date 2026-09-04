@@ -4,6 +4,7 @@
 //          by calling OpenRouter (qwen/qwen-2.5-vl-72b).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://esm.sh/zod@3.23.8";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const OPENROUTER_MODEL = "qwen/qwen-2.5-vl-72b";
@@ -117,6 +118,19 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
+
+const BODY_SCHEMA = z.object({
+  image_url: z.string().url().optional(),
+  image_base64: z.string().min(1).optional(),
+}).refine((data) => {
+  const hasUrl = !!data.image_url;
+  const hasBase64 = !!data.image_base64;
+  return hasUrl !== hasBase64;
+}, {
+  message: "Exactly one of image_url or image_base64 must be provided",
+});
+
+const RATE_LIMIT = { maxPerMinute: 10, maxPerHour: 100 };
 
 function jsonResponse(status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), {
@@ -259,8 +273,7 @@ async function enforceCredits(
     };
   }
 
-  const { data: updatedRows, error: updateError } = await supabase
-    .rpc("deduct_tenant_credits" as never, { p_tenant_id: tenantId, p_amount: cost } as never);
+  const { data: updatedRows, error: updateError } = await supabase.rpc("deduct_tenant_credits" as never, { p_tenant_id: tenantId, p_amount: cost } as never);
   if (updateError) {
     return { ok: false, status: 500, body: { error: "credit_deduction_failed", message: updateError.message } };
   }
@@ -280,6 +293,26 @@ async function enforceCredits(
   return { ok: true, balanceAfter: newBalance };
 }
 
+async function checkRateLimit(
+  supabase: ReturnType<typeof createClient>,
+  tenantId: string,
+  functionName: string,
+  maxPerMinute: number,
+  maxPerHour: number,
+): Promise<boolean> {
+  const { data, error } = await supabase.rpc("check_rate_limit", {
+    p_tenant_id: tenantId,
+    p_function_name: functionName,
+    p_max_per_minute: maxPerMinute,
+    p_max_per_hour: maxPerHour,
+  });
+  if (error) {
+    console.error("Rate limit check failed:", error);
+    return true;
+  }
+  return data as boolean;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -294,27 +327,26 @@ Deno.serve(async (req: Request) => {
     return jsonResponse(500, { error: "OpenRouter API key not configured" });
   }
 
-  let body: { image_url?: unknown; image_base64?: unknown };
+  let parsedBody: z.infer<typeof BODY_SCHEMA>;
   try {
-    body = await req.json();
+    const raw = await req.json();
+    const result = BODY_SCHEMA.safeParse(raw);
+    if (!result.success) {
+      return jsonResponse(400, {
+        error: "Invalid input",
+        details: result.error.flatten().fieldErrors,
+      });
+    }
+    parsedBody = result.data;
   } catch {
     return jsonResponse(400, { error: "Invalid JSON body" });
   }
 
   let imageUrl = "";
-  if (typeof body.image_url === "string" && body.image_url.trim() !== "") {
-    imageUrl = body.image_url.trim();
-  } else if (
-    typeof body.image_base64 === "string" &&
-    body.image_base64.trim() !== ""
-  ) {
-    imageUrl = detectMimeAndBuildDataUrl(body.image_base64.trim());
-  }
-
-  if (!imageUrl) {
-    return jsonResponse(400, {
-      error: "Missing required field: image_url or image_base64",
-    });
+  if (parsedBody.image_url) {
+    imageUrl = parsedBody.image_url;
+  } else if (parsedBody.image_base64) {
+    imageUrl = detectMimeAndBuildDataUrl(parsedBody.image_base64);
   }
 
   const authHeader = req.headers.get("Authorization");
@@ -335,6 +367,16 @@ Deno.serve(async (req: Request) => {
     return jsonResponse(401, { error: "Unauthorized" });
   }
   const tenantId = user.id;
+
+  const rateOk = await checkRateLimit(supabase, tenantId, "extract-vision", RATE_LIMIT.maxPerMinute, RATE_LIMIT.maxPerHour);
+  if (!rateOk) {
+    return jsonResponse(429, {
+      error: "rate_limited",
+      message: "Too many requests. Please try again later.",
+      limit_per_minute: RATE_LIMIT.maxPerMinute,
+    });
+  }
+
   const creditResult = await enforceCredits(supabase, tenantId, "vision_extraction");
   if (!creditResult.ok) {
     return jsonResponse(creditResult.status, creditResult.body as Record<string, unknown>);

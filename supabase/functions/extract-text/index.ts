@@ -4,6 +4,7 @@
 //          by calling OpenRouter (meta-llama/llama-3.3-70b).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://esm.sh/zod@3.23.8";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const OPENROUTER_MODEL = "meta-llama/llama-3.3-70b";
@@ -59,6 +60,13 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+const BODY_SCHEMA = z.object({
+  text: z.string().min(1).max(50000),
+  context: z.string().max(2000).optional(),
+});
+
+const RATE_LIMIT = { maxPerMinute: 20, maxPerHour: 200 };
+
 function jsonResponse(status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), {
     status,
@@ -66,21 +74,38 @@ function jsonResponse(status: number, body: Record<string, unknown>) {
   });
 }
 
+async function checkRateLimit(
+  supabase: ReturnType<typeof createClient>,
+  tenantId: string,
+  functionName: string,
+  maxPerMinute: number,
+  maxPerHour: number,
+): Promise<boolean> {
+  const { data, error } = await supabase.rpc("check_rate_limit", {
+    p_tenant_id: tenantId,
+    p_function_name: functionName,
+    p_max_per_minute: maxPerMinute,
+    p_max_per_hour: maxPerHour,
+  });
+  if (error) {
+    console.error("Rate limit check failed:", error);
+    return true;
+  }
+  return data as boolean;
+}
+
 function extractJson(content: string): unknown {
   const trimmed = content.trim();
 
-  // Fast path: pure JSON
   if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
     return JSON.parse(trimmed);
   }
 
-  // Strip ```json ... ``` or ``` ... ``` fences
   const fenceMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
   if (fenceMatch && fenceMatch[1]) {
     return JSON.parse(fenceMatch[1].trim());
   }
 
-  // Fallback: grab the first {...} block
   const firstBrace = trimmed.indexOf("{");
   const lastBrace = trimmed.lastIndexOf("}");
   if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
@@ -188,8 +213,7 @@ async function enforceCredits(
     };
   }
 
-  const { data: updatedRows, error: updateError } = await supabase
-    .rpc("deduct_tenant_credits" as never, { p_tenant_id: tenantId, p_amount: cost } as never);
+  const { data: updatedRows, error: updateError } = await supabase.rpc("deduct_tenant_credits" as never, { p_tenant_id: tenantId, p_amount: cost } as never);
   if (updateError) {
     return { ok: false, status: 500, body: { error: "credit_deduction_failed", message: updateError.message } };
   }
@@ -223,22 +247,20 @@ Deno.serve(async (req: Request) => {
     return jsonResponse(500, { error: "OpenRouter API key not configured" });
   }
 
-  let body: { text?: unknown; context?: unknown };
+  let parsedBody: z.infer<typeof BODY_SCHEMA>;
   try {
-    body = await req.json();
+    const raw = await req.json();
+    const result = BODY_SCHEMA.safeParse(raw);
+    if (!result.success) {
+      return jsonResponse(400, {
+        error: "Invalid input",
+        details: result.error.flatten().fieldErrors,
+      });
+    }
+    parsedBody = result.data;
   } catch {
     return jsonResponse(400, { error: "Invalid JSON body" });
   }
-
-  const text = typeof body.text === "string" ? body.text.trim() : "";
-  if (!text) {
-    return jsonResponse(400, { error: "Missing required field: text" });
-  }
-
-  const context = typeof body.context === "string" ? body.context : "";
-  const userText = context
-    ? `${text}\n\nAdditional context:\n${context}`
-    : text;
 
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) {
@@ -258,10 +280,24 @@ Deno.serve(async (req: Request) => {
     return jsonResponse(401, { error: "Unauthorized" });
   }
   const tenantId = user.id;
+
+  const rateOk = await checkRateLimit(supabase, tenantId, "extract-text", RATE_LIMIT.maxPerMinute, RATE_LIMIT.maxPerHour);
+  if (!rateOk) {
+    return jsonResponse(429, {
+      error: "rate_limited",
+      message: "Too many requests. Please try again later.",
+      limit_per_minute: RATE_LIMIT.maxPerMinute,
+    });
+  }
+
   const creditResult = await enforceCredits(supabase, tenantId, "text_extraction");
   if (!creditResult.ok) {
     return jsonResponse(creditResult.status, creditResult.body as Record<string, unknown>);
   }
+
+  const text = parsedBody.text.trim();
+  const context = parsedBody.context?.trim() ?? "";
+  const userText = context ? `${text}\n\nAdditional context:\n${context}` : text;
 
   const payload = {
     model: OPENROUTER_MODEL,

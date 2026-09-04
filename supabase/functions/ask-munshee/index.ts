@@ -4,6 +4,7 @@
 //          from public.business_facts, via OpenRouter (meta-llama/llama-3.3-70b).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://esm.sh/zod@3.23.8";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const OPENROUTER_MODEL = "meta-llama/llama-3.3-70b";
@@ -14,6 +15,13 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
+
+const BODY_SCHEMA = z.object({
+  tenant_id: z.string().uuid(),
+  question: z.string().min(1).max(2000),
+});
+
+const RATE_LIMIT = { maxPerMinute: 30, maxPerHour: 500 };
 
 function jsonResponse(status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), {
@@ -79,8 +87,7 @@ async function enforceCredits(
     };
   }
 
-  const { data: updatedRows, error: updateError } = await supabase
-    .rpc("deduct_tenant_credits" as never, { p_tenant_id: tenantId, p_amount: cost } as never);
+  const { data: updatedRows, error: updateError } = await supabase.rpc("deduct_tenant_credits" as never, { p_tenant_id: tenantId, p_amount: cost } as never);
   if (updateError) {
     return { ok: false, status: 500, body: { error: "credit_deduction_failed", message: updateError.message } };
   }
@@ -100,6 +107,26 @@ async function enforceCredits(
   return { ok: true, balanceAfter: newBalance };
 }
 
+async function checkRateLimit(
+  supabase: ReturnType<typeof createClient>,
+  tenantId: string,
+  functionName: string,
+  maxPerMinute: number,
+  maxPerHour: number,
+): Promise<boolean> {
+  const { data, error } = await supabase.rpc("check_rate_limit", {
+    p_tenant_id: tenantId,
+    p_function_name: functionName,
+    p_max_per_minute: maxPerMinute,
+    p_max_per_hour: maxPerHour,
+  });
+  if (error) {
+    console.error("Rate limit check failed:", error);
+    return true;
+  }
+  return data as boolean;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -109,42 +136,30 @@ Deno.serve(async (req: Request) => {
     return jsonResponse(405, { error: "Method not allowed" });
   }
 
-  let body: { tenant_id?: unknown; question?: unknown };
+  let parsedBody: z.infer<typeof BODY_SCHEMA>;
   try {
-    body = await req.json();
+    const raw = await req.json();
+    const result = BODY_SCHEMA.safeParse(raw);
+    if (!result.success) {
+      return jsonResponse(400, {
+        error: "Invalid input",
+        details: result.error.flatten().fieldErrors,
+      });
+    }
+    parsedBody = result.data;
   } catch {
     return jsonResponse(400, { error: "Invalid JSON body" });
   }
 
-  const tenantId =
-    typeof body.tenant_id === "string" ? body.tenant_id.trim() : "";
-  const question =
-    typeof body.question === "string" ? body.question.trim() : "";
-
-  if (!tenantId || !question) {
-    return jsonResponse(400, {
-      error: "Missing required fields: tenant_id and question",
-    });
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) {
+    return jsonResponse(401, { error: "Missing authorization header" });
   }
+  const token = authHeader.replace("Bearer ", "");
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
-  if (!supabaseUrl || !supabaseAnonKey) {
-    return jsonResponse(500, {
-      error: "Supabase environment not configured",
-    });
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-    global: {
-      headers: {
-        Authorization: req.headers.get("Authorization") ?? "",
-      },
-    },
-  });
-
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!serviceRoleKey) {
+  if (!supabaseUrl || !serviceRoleKey) {
     return jsonResponse(500, {
       error: "Supabase environment not configured",
     });
@@ -152,15 +167,44 @@ Deno.serve(async (req: Request) => {
   const serviceSupabase = createClient(supabaseUrl, serviceRoleKey, {
     global: {
       headers: {
-        Authorization: req.headers.get("Authorization") ?? "",
+        Authorization: authHeader,
       },
     },
   });
+
+  const { data: { user } } = await serviceSupabase.auth.getUser(token);
+  if (!user) {
+    return jsonResponse(401, { error: "Unauthorized" });
+  }
+  const tenantId = user.id;
+
+  const rateOk = await checkRateLimit(serviceSupabase, tenantId, "ask-munshee", RATE_LIMIT.maxPerMinute, RATE_LIMIT.maxPerHour);
+  if (!rateOk) {
+    return jsonResponse(429, {
+      error: "rate_limited",
+      message: "Too many requests. Please try again later.",
+      limit_per_minute: RATE_LIMIT.maxPerMinute,
+    });
+  }
 
   const creditResult = await enforceCredits(serviceSupabase, tenantId, "ask_munshee_query");
   if (!creditResult.ok) {
     return jsonResponse(creditResult.status, creditResult.body as Record<string, unknown>);
   }
+
+  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  if (!supabaseAnonKey) {
+    return jsonResponse(500, {
+      error: "Supabase environment not configured",
+    });
+  }
+  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    global: {
+      headers: {
+        Authorization: authHeader,
+      },
+    },
+  });
 
   const { data: facts, error: factsError } = await supabase
     .from("business_facts")
@@ -188,7 +232,7 @@ Deno.serve(async (req: Request) => {
     model: OPENROUTER_MODEL,
     messages: [
       { role: "system", content: systemPrompt },
-      { role: "user", content: question },
+      { role: "user", content: parsedBody.question },
     ],
     temperature: 0.1,
     max_tokens: 2048,
@@ -236,7 +280,7 @@ Deno.serve(async (req: Request) => {
 
   const { error: logError } = await supabase.from("ask_logs").insert({
     tenant_id: tenantId,
-    question,
+    question: parsedBody.question,
     answer,
   });
 
