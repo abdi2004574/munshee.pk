@@ -12,6 +12,7 @@ import { useCreateAuditLog } from "@/features/audit/hooks";
 import { supabase } from "@/lib/supabase";
 import type { BusinessFactInsert } from "@/features/facts/api";
 import type { ExtractedProduct, ExtractedVariant } from "../api";
+import { extractTextSchema, validateForm } from "@/lib/validation";
 
 const TRUNCATE_DESCRIPTION = 220;
 
@@ -200,6 +201,7 @@ export function ExtractTextPage() {
   const [context, setContext] = useState("");
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const result = extract.data;
   const products = result?.products ?? [];
@@ -212,10 +214,16 @@ export function ExtractTextPage() {
 
   async function onExtract() {
     setSaveError(null);
+    setFieldErrors({});
+    const parsed = validateForm(extractTextSchema, { text, context });
+    if (!parsed.success) {
+      setFieldErrors(parsed.errors);
+      return;
+    }
     try {
       await extract.mutateAsync({
-        text,
-        context: context.trim() || undefined,
+        text: parsed.data.text,
+        context: parsed.data.context,
       });
     } catch {
       // error displayed via extract.error
@@ -270,12 +278,14 @@ export function ExtractTextPage() {
           value={text}
           onChange={onTextChange}
           rows={10}
+          error={fieldErrors.text}
         />
         <Input
           label="Context (optional)"
           value={context}
           onChange={(e) => setContext(e.target.value)}
           placeholder="e.g. Source website URL or category hint"
+          error={fieldErrors.context}
         />
 
         {extract.isError && (
@@ -320,3 +330,4 @@ export function ExtractTextPage() {
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+ï»¿import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router";
 import { supabase } from "@/lib/supabase";
 import { useCreateOrderWithItems } from "../hooks";
@@ -8,6 +8,7 @@ import { Input } from "@/components/Input";
 import { Textarea } from "@/components/Textarea";
 import { Money } from "@/components/Money";
 import type { Customer, ProductVariant, Product } from "@/lib/types";
+import { orderSchema, validateForm } from "@/lib/validation";
 
 interface VariantWithProduct extends ProductVariant {
   product: Pick<Product, "name"> | null;
@@ -41,6 +42,7 @@ export function OrderNewPage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -100,17 +102,18 @@ export function OrderNewPage() {
 
   function handleAddItem() {
     setError(null);
+    setFieldErrors({});
     if (!variantId) {
-      setError("Please select a variant.");
+      setFieldErrors({ "": "Please select a variant." });
       return;
     }
     if (!Number.isFinite(quantity) || quantity <= 0) {
-      setError("Quantity must be a positive number.");
+      setFieldErrors({ "": "Quantity must be a positive number." });
       return;
     }
     const found = variants.find((v) => v.id === variantId);
     if (!found) {
-      setError("Selected variant not found.");
+      setFieldErrors({ "": "Selected variant not found." });
       return;
     }
     const line: DraftLine = {
@@ -133,13 +136,21 @@ export function OrderNewPage() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    setFieldErrors({});
 
-    if (!customerId) {
-      setError("Please select a customer.");
-      return;
-    }
-    if (items.length === 0) {
-      setError("Add at least one line item.");
+    const parsed = validateForm(orderSchema, {
+      customer_id: customerId || null,
+      notes: notes || null,
+      items: items.map((it) => ({ variant_id: it.variant_id, quantity: it.quantity })),
+    });
+    if (!parsed.success) {
+      setFieldErrors(parsed.errors);
+      if (items.length === 0) {
+        setError("Add at least one line item.");
+      }
+      if (!customerId) {
+        setError("Please select a customer.");
+      }
       return;
     }
 
@@ -149,11 +160,11 @@ export function OrderNewPage() {
     setSubmitting(true);
     try {
       await createOrder.mutateAsync({
-        customer_id: customerId,
-        items: items.map((it) => ({ variant_id: it.variant_id, quantity: it.quantity })),
+        customer_id: parsed.data.customer_id ?? "",
+        items: parsed.data.items.map((it) => ({ variant_id: it.variant_id, quantity: it.quantity })),
         shipping_total: shipping,
         discount_total: discount,
-        notes,
+        notes: parsed.data.notes ?? "",
       });
       navigate("/apps/orders");
     } catch (err) {
@@ -193,15 +204,18 @@ export function OrderNewPage() {
               className="mt-1.5 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-brand-500"
             >
               <option value="" disabled>
-                {loadingLookups ? "Loading customers…" : "Select a customer"}
+                {loadingLookups ? "Loading customersâ€¦" : "Select a customer"}
               </option>
               {customers.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.full_name}
-                  {c.phone ? ` — ${c.phone}` : ""}
+                  {c.phone ? ` â€” ${c.phone}` : ""}
                 </option>
               ))}
             </select>
+            {fieldErrors["customer_id"] && (
+              <p className="text-xs text-danger">{fieldErrors["customer_id"]}</p>
+            )}
           </div>
         </Card>
 
@@ -220,7 +234,7 @@ export function OrderNewPage() {
                 className="mt-1.5 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
                 <option value="">
-                  {loadingLookups ? "Loading variants…" : "Select a variant"}
+                  {loadingLookups ? "Loading variantsâ€¦" : "Select a variant"}
                 </option>
                 {variantOptions.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -328,6 +342,7 @@ export function OrderNewPage() {
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={3}
+                error={fieldErrors.notes}
               />
             </div>
           </div>
@@ -342,10 +357,11 @@ export function OrderNewPage() {
             Cancel
           </Button>
           <Button type="submit" disabled={submitting}>
-            {submitting ? "Creating…" : "Create order"}
+            {submitting ? "Creatingâ€¦" : "Create order"}
           </Button>
         </div>
       </form>
     </div>
   );
 }
+

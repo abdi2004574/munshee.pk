@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { Card } from "@/components/Card";
+import { loginSchema, validateForm } from "@/lib/validation";
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -12,15 +13,24 @@ export function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    setFieldErrors({});
     setLoading(true);
 
+    const parsed = validateForm(loginSchema, { email, password });
+    if (!parsed.success) {
+      setFieldErrors(parsed.errors);
+      setLoading(false);
+      return;
+    }
+
     const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+      email: parsed.data.email,
+      password: parsed.data.password,
     });
 
     setLoading(false);
@@ -51,14 +61,14 @@ export function LoginPage() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            required
+            error={fieldErrors.email}
           />
           <Input
             label="Password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            required
+            error={fieldErrors.password}
           />
 
           {error && (
@@ -92,3 +102,4 @@ export function LoginPage() {
     </div>
   );
 }
+

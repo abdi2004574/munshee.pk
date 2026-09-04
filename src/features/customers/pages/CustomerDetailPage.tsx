@@ -7,6 +7,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Input } from "@/components/Input";
 import { Textarea } from "@/components/Textarea";
 import type { CustomerUpdate } from "@/lib/types";
+import { customerSchema, validateForm } from "@/lib/validation";
 
 export function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -26,6 +27,7 @@ export function CustomerDetailPage() {
   const [tagsInput, setTagsInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   if (isLoading) {
     return <p className="text-sm text-ink-muted">Loading customer…</p>;
@@ -51,24 +53,42 @@ export function CustomerDetailPage() {
     setTagsInput(customer.tags.join(", "));
     setEditing(true);
     setError(null);
+    setFieldErrors({});
   }
 
   async function handleUpdate(e: React.FormEvent) { if (!customer) return;
     e.preventDefault();
     setError(null);
+    setFieldErrors({});
     setSubmitting(true);
     try {
+      const tags = tagsInput
+        .split(",")
+        .map((t) => t.trim())
+        .filter((t) => t.length > 0);
+
+      const parsed = validateForm(customerSchema, {
+        full_name: fullName,
+        email: email || "",
+        phone: phone || "",
+        city: city || "",
+        address: address || "",
+        notes: notes || "",
+        tags,
+      });
+      if (!parsed.success) {
+        setFieldErrors(parsed.errors);
+        return;
+      }
+
       const payload: CustomerUpdate = {
-        full_name: fullName.trim(),
-        email: email.trim() || null,
-        phone: phone.trim() || null,
-        city: city.trim() || null,
-        address: address.trim() || null,
-        notes: notes.trim() || null,
-        tags: tagsInput
-          .split(",")
-          .map((t) => t.trim())
-          .filter((t) => t.length > 0),
+        full_name: parsed.data.full_name.trim(),
+        email: parsed.data.email || null,
+        phone: parsed.data.phone || null,
+        city: parsed.data.city || null,
+        address: parsed.data.address || null,
+        notes: parsed.data.notes || null,
+        tags: parsed.data.tags,
       };
       await update.mutateAsync({ id: customer.id, data: payload });
       setEditing(false);
@@ -105,6 +125,7 @@ export function CustomerDetailPage() {
               label="Full Name"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
+              error={fieldErrors.full_name}
               required
               className="md:col-span-2"
             />
@@ -113,16 +134,19 @@ export function CustomerDetailPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              error={fieldErrors.email}
             />
             <Input
               label="Phone"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
+              error={fieldErrors.phone}
             />
             <Input
               label="City"
               value={city}
               onChange={(e) => setCity(e.target.value)}
+              error={fieldErrors.city}
             />
             <div className="md:col-span-2">
               <Textarea
@@ -130,6 +154,7 @@ export function CustomerDetailPage() {
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 rows={3}
+                error={fieldErrors.address}
               />
             </div>
             <div className="md:col-span-2">
@@ -138,6 +163,7 @@ export function CustomerDetailPage() {
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={3}
+                error={fieldErrors.notes}
               />
             </div>
             <div className="md:col-span-2">
@@ -204,3 +230,4 @@ export function CustomerDetailPage() {
     </div>
   );
 }
+

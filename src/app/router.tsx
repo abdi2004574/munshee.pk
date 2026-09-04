@@ -1,31 +1,41 @@
+﻿import { lazy, Suspense } from "react";
 import { createBrowserRouter, Navigate, Outlet } from "react-router";
 import { useSession } from "@/features/auth/useSession";
 import { LoginPage } from "@/features/auth/LoginPage";
 import { SignupPage } from "@/features/auth/SignupPage";
 import { CallbackPage } from "@/features/auth/CallbackPage";
-import { DashboardPage } from "@/routes/DashboardPage";
 import { AppShell } from "@/components/AppShell";
-import { ProductsListPage } from "@/features/products/pages/ProductsListPage";
-import { ProductNewPage } from "@/features/products/pages/ProductNewPage";
-import { ProductDetailPage } from "@/features/products/pages/ProductDetailPage";
-import { OrdersListPage } from "@/features/orders/pages/OrdersListPage";
-import { OrderNewPage } from "@/features/orders/pages/OrderNewPage";
-import { OrderDetailPage } from "@/features/orders/pages/OrderDetailPage";
-import { CustomersListPage } from "@/features/customers/pages/CustomersListPage";
-import { CustomerNewPage } from "@/features/customers/pages/CustomerNewPage";
-import { CustomerDetailPage } from "@/features/customers/pages/CustomerDetailPage";
-import { SettingsPage } from "@/features/settings/pages/SettingsPage";
-import { ImportNewPage } from "@/features/imports/pages/ImportNewPage";
-import { ReviewQueuePage } from "@/features/reviews/pages/ReviewQueuePage";
-import { ReviewDetailPage } from "@/features/reviews/pages/ReviewDetailPage";
-import { ExtractTextPage } from "@/features/extraction/pages/ExtractTextPage";
-import { ExtractVisionPage } from "@/features/extraction/pages/ExtractVisionPage";
-import { ScrapePage } from "@/features/scraper/pages/ScrapePage";
-import { AskPage } from "@/features/ask/pages/AskPage";
-import { SocialConnectPage } from "@/features/social/pages/SocialConnectPage";
-import { WhatsappExportPage } from "@/features/whatsapp/pages/WhatsappExportPage";
-import { PublicProfilePage } from "@/features/public-profile/pages/PublicProfilePage";
-import { BillingPage } from "@/features/billing/pages/BillingPage";
+
+const LazyDashboardPage = lazy(() => import("@/routes/DashboardPage").then(m => ({ default: m.DashboardPage })));
+const LazyProductsListPage = lazy(() => import("@/features/products/pages/ProductsListPage").then(m => ({ default: m.ProductsListPage })));
+const LazyProductNewPage = lazy(() => import("@/features/products/pages/ProductNewPage").then(m => ({ default: m.ProductNewPage })));
+const LazyProductDetailPage = lazy(() => import("@/features/products/pages/ProductDetailPage").then(m => ({ default: m.ProductDetailPage })));
+const LazyOrdersListPage = lazy(() => import("@/features/orders/pages/OrdersListPage").then(m => ({ default: m.OrdersListPage })));
+const LazyOrderNewPage = lazy(() => import("@/features/orders/pages/OrderNewPage").then(m => ({ default: m.OrderNewPage })));
+const LazyOrderDetailPage = lazy(() => import("@/features/orders/pages/OrderDetailPage").then(m => ({ default: m.OrderDetailPage })));
+const LazyCustomersListPage = lazy(() => import("@/features/customers/pages/CustomersListPage").then(m => ({ default: m.CustomersListPage })));
+const LazyCustomerNewPage = lazy(() => import("@/features/customers/pages/CustomerNewPage").then(m => ({ default: m.CustomerNewPage })));
+const LazyCustomerDetailPage = lazy(() => import("@/features/customers/pages/CustomerDetailPage").then(m => ({ default: m.CustomerDetailPage })));
+const LazySettingsPage = lazy(() => import("@/features/settings/pages/SettingsPage").then(m => ({ default: m.SettingsPage })));
+const LazyImportNewPage = lazy(() => import("@/features/imports/pages/ImportNewPage").then(m => ({ default: m.ImportNewPage })));
+const LazyReviewQueuePage = lazy(() => import("@/features/reviews/pages/ReviewQueuePage").then(m => ({ default: m.ReviewQueuePage })));
+const LazyReviewDetailPage = lazy(() => import("@/features/reviews/pages/ReviewDetailPage").then(m => ({ default: m.ReviewDetailPage })));
+const LazyExtractTextPage = lazy(() => import("@/features/extraction/pages/ExtractTextPage").then(m => ({ default: m.ExtractTextPage })));
+const LazyExtractVisionPage = lazy(() => import("@/features/extraction/pages/ExtractVisionPage").then(m => ({ default: m.ExtractVisionPage })));
+const LazyScrapePage = lazy(() => import("@/features/scraper/pages/ScrapePage").then(m => ({ default: m.ScrapePage })));
+const LazyAskPage = lazy(() => import("@/features/ask/pages/AskPage").then(m => ({ default: m.AskPage })));
+const LazySocialConnectPage = lazy(() => import("@/features/social/pages/SocialConnectPage").then(m => ({ default: m.SocialConnectPage })));
+const LazyWhatsappExportPage = lazy(() => import("@/features/whatsapp/pages/WhatsappExportPage").then(m => ({ default: m.WhatsappExportPage })));
+const LazyPublicProfilePage = lazy(() => import("@/features/public-profile/pages/PublicProfilePage").then(m => ({ default: m.PublicProfilePage })));
+const LazyBillingPage = lazy(() => import("@/features/billing/pages/BillingPage").then(m => ({ default: m.BillingPage })));
+
+function RouteSuspense({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center text-ink-muted">Loading…</div>}>
+      {children}
+    </Suspense>
+  );
+}
 
 function ProtectedRoute() {
   const { data, isLoading } = useSession();
@@ -33,7 +43,7 @@ function ProtectedRoute() {
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center text-ink-muted">
-        Loading�
+        Loading…
       </div>
     );
   }
@@ -55,7 +65,7 @@ function RootRedirect() {
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center text-ink-muted">
-        Loading�
+        Loading…
       </div>
     );
   }
@@ -70,7 +80,7 @@ export const router = createBrowserRouter([
   },
   {
     path: "/profile/:tenantId",
-    element: <PublicProfilePage />,
+    element: <RouteSuspense><LazyPublicProfilePage /></RouteSuspense>,
   },
   {
     path: "/login",
@@ -90,7 +100,7 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <DashboardPage />,
+        element: <RouteSuspense><LazyDashboardPage /></RouteSuspense>,
       },
     ],
   },
@@ -98,27 +108,29 @@ export const router = createBrowserRouter([
     path: "/apps",
     element: <ProtectedRoute />,
     children: [
-      { path: "products", element: <ProductsListPage /> },
-      { path: "products/new", element: <ProductNewPage /> },
-      { path: "products/:id", element: <ProductDetailPage /> },
-      { path: "orders", element: <OrdersListPage /> },
-      { path: "orders/new", element: <OrderNewPage /> },
-      { path: "orders/:id", element: <OrderDetailPage /> },
-      { path: "customers", element: <CustomersListPage /> },
-      { path: "customers/new", element: <CustomerNewPage /> },
-      { path: "customers/:id", element: <CustomerDetailPage /> },
-      { path: "settings", element: <SettingsPage /> },
-      { path: "import", element: <ImportNewPage /> },
+      { path: "products", element: <RouteSuspense><LazyProductsListPage /></RouteSuspense> },
+      { path: "products/new", element: <RouteSuspense><LazyProductNewPage /></RouteSuspense> },
+      { path: "products/:id", element: <RouteSuspense><LazyProductDetailPage /></RouteSuspense> },
+      { path: "orders", element: <RouteSuspense><LazyOrdersListPage /></RouteSuspense> },
+      { path: "orders/new", element: <RouteSuspense><LazyOrderNewPage /></RouteSuspense> },
+      { path: "orders/:id", element: <RouteSuspense><LazyOrderDetailPage /></RouteSuspense> },
+      { path: "customers", element: <RouteSuspense><LazyCustomersListPage /></RouteSuspense> },
+      { path: "customers/new", element: <RouteSuspense><LazyCustomerNewPage /></RouteSuspense> },
+      { path: "customers/:id", element: <RouteSuspense><LazyCustomerDetailPage /></RouteSuspense> },
+      { path: "settings", element: <RouteSuspense><LazySettingsPage /></RouteSuspense> },
+      { path: "import", element: <RouteSuspense><LazyImportNewPage /></RouteSuspense> },
       { path: "import/new", element: <Navigate to="/apps/import" replace /> },
-      { path: "review", element: <ReviewQueuePage /> },
-      { path: "review/:id", element: <ReviewDetailPage /> },
-      { path: "scrape", element: <ScrapePage /> },
-      { path: "extract/text", element: <ExtractTextPage /> },
-      { path: "extract/vision", element: <ExtractVisionPage /> },
-      { path: "ask", element: <AskPage /> },
-      { path: "social", element: <SocialConnectPage /> },
-      { path: "whatsapp", element: <WhatsappExportPage /> },
-      { path: "billing", element: <BillingPage /> },
+      { path: "review", element: <RouteSuspense><LazyReviewQueuePage /></RouteSuspense> },
+      { path: "review/:id", element: <RouteSuspense><LazyReviewDetailPage /></RouteSuspense> },
+      { path: "scrape", element: <RouteSuspense><LazyScrapePage /></RouteSuspense> },
+      { path: "extract/text", element: <RouteSuspense><LazyExtractTextPage /></RouteSuspense> },
+      { path: "extract/vision", element: <RouteSuspense><LazyExtractVisionPage /></RouteSuspense> },
+      { path: "ask", element: <RouteSuspense><LazyAskPage /></RouteSuspense> },
+      { path: "social", element: <RouteSuspense><LazySocialConnectPage /></RouteSuspense> },
+      { path: "whatsapp", element: <RouteSuspense><LazyWhatsappExportPage /></RouteSuspense> },
+      { path: "billing", element: <RouteSuspense><LazyBillingPage /></RouteSuspense> },
     ],
   },
 ]);
+
+

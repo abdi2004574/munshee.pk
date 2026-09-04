@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { Card } from "@/components/Card";
+import { signupSchema, validateForm } from "@/lib/validation";
 
 export function SignupPage() {
   const navigate = useNavigate();
@@ -13,17 +14,30 @@ export function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    setFieldErrors({});
     setLoading(true);
 
-    const { data, error } = await supabase.auth.signUp({
+    const parsed = validateForm(signupSchema, {
+      full_name: fullName,
       email,
       password,
+    });
+    if (!parsed.success) {
+      setFieldErrors(parsed.errors);
+      setLoading(false);
+      return;
+    }
+
+    const { data, error } = await supabase.auth.signUp({
+      email: parsed.data.email,
+      password: parsed.data.password,
       options: {
-        data: { full_name: fullName },
+        data: { full_name: parsed.data.full_name },
         emailRedirectTo: window.location.origin + "/auth/callback",
       },
     });
@@ -77,21 +91,21 @@ export function SignupPage() {
             type="text"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
-            required
+            error={fieldErrors.full_name}
           />
           <Input
             label="Email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            required
+            error={fieldErrors.email}
           />
           <Input
             label="Password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            required
+            error={fieldErrors.password}
           />
 
           {error && (
@@ -115,3 +129,4 @@ export function SignupPage() {
     </div>
   );
 }
+

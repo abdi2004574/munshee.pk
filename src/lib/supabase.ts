@@ -1,10 +1,10 @@
 ﻿import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/types";
+import { getEnv } from "@/lib/env";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+const env = getEnv();
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient<Database>(env.VITE_SUPABASE_URL, env.VITE_SUPABASE_ANON_KEY, {
   auth: {
     flowType: "pkce",
     persistSession: true,
@@ -12,3 +12,4 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: false,
   },
 });
+

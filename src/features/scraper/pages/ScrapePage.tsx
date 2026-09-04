@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent } from "react";
+﻿import { useState, type ChangeEvent } from "react";
 import { useNavigate } from "react-router";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
@@ -12,12 +12,13 @@ import {
 } from "@/features/imports/hooks";
 import { supabase } from "@/lib/supabase";
 import type { JsonValue } from "@/lib/types";
+import { scrapeSchema, validateForm } from "@/lib/validation";
 
 const TRUNCATE_DESCRIPTION = 220;
 
 function truncate(text: string, max: number): string {
   if (text.length <= max) return text;
-  return `${text.slice(0, max).trimEnd()}\u2026`;
+  return `${text.slice(0, max).trimEnd()}…`;
 }
 
 interface ScrapedProduct {
@@ -134,6 +135,7 @@ export function ScrapePage() {
   const [url, setUrl] = useState("");
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const result = scrape.data;
   const products = result?.products ?? [];
@@ -146,8 +148,14 @@ export function ScrapePage() {
 
   async function onScrape() {
     setSaveError(null);
+    setFieldErrors({});
+    const parsed = validateForm(scrapeSchema, { url });
+    if (!parsed.success) {
+      setFieldErrors(parsed.errors);
+      return;
+    }
     try {
-      await scrape.mutateAsync(url.trim());
+      await scrape.mutateAsync(parsed.data.url.trim());
     } catch {
       // error displayed via scrape.error
     }
@@ -215,6 +223,7 @@ export function ScrapePage() {
           value={url}
           onChange={onUrlChange}
           placeholder="https://example.com/products"
+          error={fieldErrors.url}
         />
 
         {scrape.isError && (
@@ -227,14 +236,14 @@ export function ScrapePage() {
 
         <div className="flex justify-end">
           <Button onClick={onScrape} disabled={!canScrape}>
-            {scrape.isPending ? "Scraping\u2026" : "Scrape Products"}
+            {scrape.isPending ? "Scraping…" : "Scrape Products"}
           </Button>
         </div>
       </Card>
 
       {scrape.isPending && (
         <Card className="p-6">
-          <p className="text-sm text-ink-muted">Scraping products\u2026</p>
+          <p className="text-sm text-ink-muted">Scraping products…</p>
         </Card>
       )}
 
@@ -251,7 +260,7 @@ export function ScrapePage() {
 
           <div className="flex justify-end">
             <Button onClick={onSaveToQueue} disabled={!canSave}>
-              {saving ? "Saving\u2026" : "Save to Review Queue"}
+              {saving ? "Saving…" : "Save to Review Queue"}
             </Button>
           </div>
         </div>
@@ -259,3 +268,4 @@ export function ScrapePage() {
     </div>
   );
 }
+
