@@ -21,6 +21,7 @@ const navItems = [
   { to: "/apps/ask", label: "Ask Munshee", end: false },
   { to: "/apps/social", label: "Social Connect", end: false },
   { to: "/apps/whatsapp", label: "WhatsApp Export", end: false },
+  { to: "/apps/billing", label: "Billing & Plans", end: false },
 ];
 
 export function AppShell({ children }: AppShellProps) {

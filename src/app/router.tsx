@@ -25,6 +25,7 @@ import { AskPage } from "@/features/ask/pages/AskPage";
 import { SocialConnectPage } from "@/features/social/pages/SocialConnectPage";
 import { WhatsappExportPage } from "@/features/whatsapp/pages/WhatsappExportPage";
 import { PublicProfilePage } from "@/features/public-profile/pages/PublicProfilePage";
+import { BillingPage } from "@/features/billing/pages/BillingPage";
 
 function ProtectedRoute() {
   const { data, isLoading } = useSession();
@@ -32,7 +33,7 @@ function ProtectedRoute() {
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center text-ink-muted">
-        Loading…
+        Loadingï¿½
       </div>
     );
   }
@@ -54,7 +55,7 @@ function RootRedirect() {
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center text-ink-muted">
-        Loading…
+        Loadingï¿½
       </div>
     );
   }
@@ -117,6 +118,7 @@ export const router = createBrowserRouter([
       { path: "ask", element: <AskPage /> },
       { path: "social", element: <SocialConnectPage /> },
       { path: "whatsapp", element: <WhatsappExportPage /> },
+      { path: "billing", element: <BillingPage /> },
     ],
   },
 ]);

@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -13,6 +13,7 @@ export interface Database {
         Row: {
           id: string;
           display_name: string;
+          credit_balance: number;
           created_at: string;
         };
         Insert: {
