@@ -117,7 +117,7 @@ graph LR
 
 - **Supabase** (free tier): 500 MB database, 50k monthly active users. Auth + commerce + functions usage fits this tier for development and small pilots.
 - **Cloudflare Pages**: free.
-- **OpenRouter**: the free tier is heavily rate-limited for the heavy models used here (~20-50 requests/day). **$5 minimum top-up is recommended** for any real usage; treat the free tier as smoke-test-only.
+- **OpenRouter**: the free tier is heavily rate-limited for the heavy models used here (~50 requests/day on `:free` models). To raise the daily free-model limit from 50 to 1,000 requests/day, purchase **$10 in credits** (one-time, credits never expire). Note: the 20 requests/minute cap applies regardless of balance and cannot be raised by paying more. Treat the free tier as smoke-test-only; for any real usage, the $10 credit purchase is recommended.
 
 ## Notes
 
@@ -129,4 +129,5 @@ graph LR
 ## Contributing
 
 Pull requests are welcome. Run `pnpm typecheck` before opening one; `pnpm build` must pass.
+
 

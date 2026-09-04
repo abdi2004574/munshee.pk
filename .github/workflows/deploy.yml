@@ -1,0 +1,61 @@
+﻿name: Deploy
+
+# This workflow runs on every push to main.
+# Note: Cloudflare Pages can also auto-deploy on push via the Cloudflare integration.
+# This workflow provides explicit control over the deployment process.
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy-cloudflare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build for Cloudflare Pages
+        run: pnpm cf:build
+      # Secrets required (set in GitHub repo -> Settings -> Secrets and variables -> Actions):
+      #   CLOUDFLARE_API_TOKEN   - Cloudflare API token with Pages:Edit permission
+      #   CLOUDFLARE_ACCOUNT_ID   - Cloudflare account ID
+      #   CLOUDFLARE_PROJECT_NAME - Name of the Cloudflare Pages project
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: ${{ secrets.CLOUDFLARE_PROJECT_NAME }}
+          publishDir: ./dist
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy-supabase-functions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: denoland/setup-deno@v4
+        with:
+          deno-version: 2
+      - name: Install Supabase CLI
+        run: npm install -g supabase
+      # Secrets required (set in GitHub repo -> Settings -> Secrets and variables -> Actions):
+      #   SUPABASE_ACCESS_TOKEN - Supabase personal access token (with deployment scope)
+      #   SUPABASE_PROJECT_REF  - The project ref of the target Supabase project
+      - name: Login to Supabase
+        run: npx supabase login --token ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      - name: Link to Supabase project
+        run: npx supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+      - name: Deploy Edge Functions
+        run: npx supabase functions deploy extract-text extract-vision ask-munshee
+
