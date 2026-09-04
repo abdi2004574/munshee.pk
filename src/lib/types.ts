@@ -215,6 +215,48 @@ export interface Database {
           created_at?: string;
         };
       };
+
+      social_connections: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          provider: string;
+          page_id: string;
+          page_name: string | null;
+          access_token: string;
+          token_expires_at: string | null;
+          last_sync_at: string | null;
+          created_at: string;
+          updated_at: string;
+          deleted_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          tenant_id: string;
+          provider: string;
+          page_id: string;
+          page_name?: string | null;
+          access_token: string;
+          token_expires_at?: string | null;
+          last_sync_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          deleted_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          tenant_id?: string;
+          provider?: string;
+          page_id?: string;
+          page_name?: string | null;
+          access_token?: string;
+          token_expires_at?: string | null;
+          last_sync_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          deleted_at?: string | null;
+        };
+      };
     };
   };
 }
@@ -432,3 +474,7 @@ export type BusinessFactUpdate = Database["public"]["Tables"]["business_facts"][
 
 export type AuditLog = Database["public"]["Tables"]["audit_log"]["Row"];
 export type AskLog = Database["public"]["Tables"]["ask_logs"]["Row"];
+
+export type SocialConnection = Database["public"]["Tables"]["social_connections"]["Row"];
+export type SocialConnectionInsert = Database["public"]["Tables"]["social_connections"]["Insert"];
+export type SocialConnectionUpdate = Database["public"]["Tables"]["social_connections"]["Update"];
