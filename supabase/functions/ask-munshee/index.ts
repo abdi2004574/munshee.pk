@@ -1,4 +1,4 @@
-﻿// Supabase Edge Function: ask-munshee
+// Supabase Edge Function: ask-munshee
 // Runtime: Deno
 // Purpose: Answer a tenant's business question using only confirmed facts
 //          from public.business_facts, via OpenRouter (meta-llama/llama-3.3-70b).
@@ -39,6 +39,65 @@ Only answer using the facts provided below. If the answer isn't in these facts, 
 
 FACTS:
 ${factLines}`;
+}
+
+async function enforceCredits(
+  supabase: ReturnType<typeof createClient>,
+  tenantId: string,
+  actionType: string,
+): Promise<{ ok: true; balanceAfter: number } | { ok: false; status: number; body: Record<string, unknown> }> {
+  const { data: costRow, error: costError } = await supabase
+    .from("credit_costs" as never)
+    .select("credits")
+    .eq("action_type", actionType)
+    .maybeSingle();
+  if (costError || !costRow) {
+    return { ok: false, status: 500, body: { error: "credit_config_missing", message: `No credit cost configured for action: ${actionType}` } };
+  }
+  const cost = Number((costRow as { credits: number }).credits);
+
+  const { data: tenantRow, error: tenantError } = await supabase
+    .from("tenants" as never)
+    .select("credit_balance")
+    .eq("id", tenantId)
+    .maybeSingle();
+  if (tenantError || !tenantRow) {
+    return { ok: false, status: 500, body: { error: "tenant_not_found" } };
+  }
+  const currentBalance = Number((tenantRow as { credit_balance: number }).credit_balance);
+
+  if (currentBalance < cost) {
+    return {
+      ok: false,
+      status: 402,
+      body: {
+        error: "out_of_credits",
+        message: `You have ${currentBalance} credits, but this action costs ${cost} credits. Please top up your balance.`,
+        required: cost,
+        available: currentBalance,
+      },
+    };
+  }
+
+  const { data: updatedRows, error: updateError } = await supabase
+    .rpc("deduct_tenant_credits" as never, { p_tenant_id: tenantId, p_amount: cost } as never);
+  if (updateError) {
+    return { ok: false, status: 500, body: { error: "credit_deduction_failed", message: updateError.message } };
+  }
+  const newBalance = updatedRows as unknown as number | null;
+  if (newBalance === null || newBalance === undefined) {
+    return { ok: false, status: 402, body: { error: "out_of_credits", message: "Insufficient credits (concurrent deduction)." } };
+  }
+
+  await supabase.from("credit_ledger" as never).insert({
+    tenant_id: tenantId,
+    action_type: actionType,
+    credits_used: cost,
+    balance_after: newBalance,
+    reference_id: null,
+  } as never);
+
+  return { ok: true, balanceAfter: newBalance };
 }
 
 Deno.serve(async (req: Request) => {
@@ -83,6 +142,25 @@ Deno.serve(async (req: Request) => {
       },
     },
   });
+
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!serviceRoleKey) {
+    return jsonResponse(500, {
+      error: "Supabase environment not configured",
+    });
+  }
+  const serviceSupabase = createClient(supabaseUrl, serviceRoleKey, {
+    global: {
+      headers: {
+        Authorization: req.headers.get("Authorization") ?? "",
+      },
+    },
+  });
+
+  const creditResult = await enforceCredits(serviceSupabase, tenantId, "ask_munshee_query");
+  if (!creditResult.ok) {
+    return jsonResponse(creditResult.status, creditResult.body as Record<string, unknown>);
+  }
 
   const { data: facts, error: factsError } = await supabase
     .from("business_facts")
