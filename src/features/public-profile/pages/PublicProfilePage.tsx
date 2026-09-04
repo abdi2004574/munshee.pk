@@ -1,4 +1,4 @@
-﻿import { useEffect } from "react";
+import { useEffect } from "react";
 import { useParams } from "react-router";
 import { usePublicProfile, useIncrementViews } from "../hooks";
 import { Card } from "@/components/Card";
@@ -53,8 +53,10 @@ export function PublicProfilePage() {
 
   if (error) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-danger">Failed to load profile.</p>
+      <div className="flex min-h-screen items-center justify-center bg-surface-muted px-4">
+        <Card className="w-full max-w-md p-8 text-center">
+          <p className="text-danger">Failed to load profile.</p>
+        </Card>
       </div>
     );
   }
@@ -62,10 +64,12 @@ export function PublicProfilePage() {
   if (facts.length === 0) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-surface-muted px-4">
-        <EmptyState
-          title="No public profile yet"
-          description="This business hasn't published any public facts."
-        />
+        <Card className="w-full max-w-md p-8 text-center">
+          <EmptyState
+            title="No public profile yet"
+            description="This business hasn't published any public facts."
+          />
+        </Card>
       </div>
     );
   }
@@ -116,3 +120,4 @@ export function PublicProfilePage() {
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-﻿import { useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/Button";
@@ -55,7 +55,7 @@ export function LoginPage() {
           <p className="text-sm text-ink-muted">Welcome back to Munshee.pk</p>
         </div>
 
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={onSubmit} noValidate className="space-y-4">
           <Input
             label="Email"
             type="email"
@@ -88,7 +88,7 @@ export function LoginPage() {
           </label>
 
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Signing in…" : "Sign in"}
+            {loading ? "Signing in�" : "Sign in"}
           </Button>
         </form>
 
