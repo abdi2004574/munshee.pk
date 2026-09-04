@@ -22,8 +22,7 @@ $$;
 -- 2. businesses table
 -- ============================================================================
 
-drop table if exists public.businesses cascade;
-create table public.businesses (
+create table if not exists public.businesses (
   id            uuid primary key default gen_random_uuid(),
   tenant_id     uuid not null references public.tenants(id) on delete cascade,
   slug          text not null unique,
@@ -83,8 +82,7 @@ grant select, insert, update, delete on public.businesses to authenticated;
 -- 3. business_facts table
 -- ============================================================================
 
-drop table if exists public.business_facts cascade;
-create table public.business_facts (
+create table if not exists public.business_facts (
   id            uuid primary key default gen_random_uuid(),
   tenant_id     uuid not null references public.tenants(id) on delete cascade,
   category      text not null check (category in (
@@ -145,8 +143,7 @@ grant select, insert, update, delete on public.business_facts to authenticated;
 -- 4. audit_log table (append-only)
 -- ============================================================================
 
-drop table if exists public.audit_log cascade;
-create table public.audit_log (
+create table if not exists public.audit_log (
   id         uuid primary key default gen_random_uuid(),
   tenant_id  uuid not null references public.tenants(id) on delete cascade,
   fact_id    uuid references public.business_facts(id) on delete set null,
@@ -179,8 +176,7 @@ grant select, insert on public.audit_log to authenticated;
 -- 5. ask_logs table (append-only)
 -- ============================================================================
 
-drop table if exists public.ask_logs cascade;
-create table public.ask_logs (
+create table if not exists public.ask_logs (
   id         uuid primary key default gen_random_uuid(),
   tenant_id  uuid not null references public.tenants(id) on delete cascade,
   question   text not null,
