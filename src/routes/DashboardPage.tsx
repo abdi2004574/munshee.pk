@@ -1,7 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
+﻿import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import type { Profile, AppSettings } from "@/lib/types";
 import { Card } from "@/components/Card";
+import { SkeletonCard } from "@/components/Skeleton";
 
 function useCountQuery(
   key: string,
@@ -61,6 +62,14 @@ export function DashboardPage() {
   const name = profileQuery.data?.full_name ?? "there";
   const currency = settingsQuery.data?.currency ?? "PKR";
 
+  const isLoading =
+    profileQuery.isLoading ||
+    settingsQuery.isLoading ||
+    totalProducts.isLoading ||
+    totalOrders.isLoading ||
+    totalCustomers.isLoading ||
+    pendingOrders.isLoading;
+
   return (
     <div className="space-y-6">
       <div>
@@ -70,36 +79,45 @@ export function DashboardPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-6">
-          <p className="text-sm text-ink-muted">Total Products</p>
-          <p className="text-3xl font-semibold text-ink">
-            {totalProducts.data ?? 0}
-          </p>
-          <p className="text-xs text-ink-muted">Active catalog items</p>
-        </Card>
-        <Card className="p-6">
-          <p className="text-sm text-ink-muted">Total Orders</p>
-          <p className="text-3xl font-semibold text-ink">
-            {totalOrders.data ?? 0}
-          </p>
-          <p className="text-xs text-ink-muted">All time</p>
-        </Card>
-        <Card className="p-6">
-          <p className="text-sm text-ink-muted">Total Customers</p>
-          <p className="text-3xl font-semibold text-ink">
-            {totalCustomers.data ?? 0}
-          </p>
-          <p className="text-xs text-ink-muted">Active contacts</p>
-        </Card>
-        <Card className="p-6">
-          <p className="text-sm text-ink-muted">Pending Orders</p>
-          <p className="text-3xl font-semibold text-ink">
-            {pendingOrders.data ?? 0}
-          </p>
-          <p className="text-xs text-ink-muted">Awaiting fulfilment</p>
-        </Card>
-      </div>
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="p-6">
+            <p className="text-sm text-ink-muted">Total Products</p>
+            <p className="text-3xl font-semibold text-ink">
+              {totalProducts.data ?? 0}
+            </p>
+            <p className="text-xs text-ink-muted">Active catalog items</p>
+          </Card>
+          <Card className="p-6">
+            <p className="text-sm text-ink-muted">Total Orders</p>
+            <p className="text-3xl font-semibold text-ink">
+              {totalOrders.data ?? 0}
+            </p>
+            <p className="text-xs text-ink-muted">All time</p>
+          </Card>
+          <Card className="p-6">
+            <p className="text-sm text-ink-muted">Total Customers</p>
+            <p className="text-3xl font-semibold text-ink">
+              {totalCustomers.data ?? 0}
+            </p>
+            <p className="text-xs text-ink-muted">Active contacts</p>
+          </Card>
+          <Card className="p-6">
+            <p className="text-sm text-ink-muted">Pending Orders</p>
+            <p className="text-3xl font-semibold text-ink">
+              {pendingOrders.data ?? 0}
+            </p>
+            <p className="text-xs text-ink-muted">Awaiting fulfilment</p>
+          </Card>
+        </div>
+      )}
 
       <Card className="p-6">
         <p className="text-sm text-ink-muted">

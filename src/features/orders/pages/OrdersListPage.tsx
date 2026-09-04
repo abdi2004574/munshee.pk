@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+ï»¿import { useCallback, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { useOrders, useSoftDeleteOrder, useUpdateOrderStatus } from "../hooks";
 import { DataTable, type DataTableColumn } from "@/components/DataTable";
@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { Pagination } from "@/components/Pagination";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Money } from "@/components/Money";
+import { SkeletonCard } from "@/components/Skeleton";
 import { StatusBadge } from "../components/StatusBadge";
 import type { Order } from "@/lib/types";
 
@@ -92,9 +93,9 @@ export function OrdersListPage() {
         key: "customer",
         header: "Customer",
         render: (row) => row.customer_id ? (
-          <span className="text-sm">{row.customer_id.slice(0, 8)}…</span>
+          <span className="text-sm">{row.customer_id.slice(0, 8)}â€¦</span>
         ) : (
-          <span className="text-sm text-ink-muted">—</span>
+          <span className="text-sm text-ink-muted">â€”</span>
         ),
       },
       {
@@ -111,7 +112,7 @@ export function OrdersListPage() {
       {
         key: "placed_at",
         header: "Placed At",
-        render: (row) => row.placed_at ? new Date(row.placed_at).toLocaleString() : "—",
+        render: (row) => row.placed_at ? new Date(row.placed_at).toLocaleString() : "â€”",
       },
       {
         key: "actions",
@@ -173,32 +174,36 @@ export function OrdersListPage() {
         </div>
       </Card>
 
-      <Card>
-        <DataTable<Order>
-          columns={columns}
-          data={orders}
-          isLoading={isLoading}
-          emptyState={
-            <EmptyState
-              title="No orders yet"
-              description="Create your first order to get started."
-              action={
-                <Link to="/apps/orders/new">
-                  <Button>New Order</Button>
-                </Link>
-              }
-            />
-          }
-        />
-        <div className="border-t border-gray-100 p-4">
-          <Pagination
-            page={page}
-            pageSize={PAGE_SIZE}
-            totalItems={totalItems}
-            onPageChange={setPage}
+      {isLoading ? (
+        <SkeletonCard />
+      ) : (
+        <Card>
+          <DataTable<Order>
+            columns={columns}
+            data={orders}
+            isLoading={isLoading}
+            emptyState={
+              <EmptyState
+                title="No orders yet"
+                description="Create your first order to get started."
+                action={
+                  <Link to="/apps/orders/new">
+                    <Button>New Order</Button>
+                  </Link>
+                }
+              />
+            }
           />
-        </div>
-      </Card>
+          <div className="border-t border-gray-100 p-4">
+            <Pagination
+              page={page}
+              pageSize={PAGE_SIZE}
+              totalItems={totalItems}
+              onPageChange={setPage}
+            />
+          </div>
+        </Card>
+      )}
 
       <ConfirmDialog
         open={pendingDelete !== null}

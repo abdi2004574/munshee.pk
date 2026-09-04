@@ -10,6 +10,7 @@ import { Card } from "@/components/Card";
 import { EmptyState } from "@/components/EmptyState";
 import { Pagination } from "@/components/Pagination";
 import { Select } from "@/components/Select";
+import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
 import type { Database } from "@/lib/types";
 
@@ -30,8 +31,7 @@ export function ReviewQueuePage() {
   const [params, setParams] = useSearchParams();
   const qc = useQueryClient();
   const createAuditLog = useCreateAuditLog();
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const toast = useToast();
   const [workingId, setWorkingId] = useState<string | null>(null);
   const [batchWorking, setBatchWorking] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -76,10 +76,6 @@ export function ReviewQueuePage() {
     [params, setParams],
   );
 
-  if (success) {
-    setTimeout(() => setSuccess(null), 3000);
-  }
-
   async function applyFactStatus(
     fact: BusinessFact,
     newStatus: "confirmed" | "rejected",
@@ -109,13 +105,11 @@ export function ReviewQueuePage() {
 
   async function handleApprove(fact: BusinessFact) {
     setWorkingId(fact.id);
-    setError(null);
-    setSuccess(null);
     try {
       await applyFactStatus(fact, "confirmed");
-      setSuccess("Fact confirmed successfully.");
+      toast.success("Fact confirmed successfully.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to confirm fact");
+      toast.error(err instanceof Error ? err.message : "Failed to confirm fact");
     } finally {
       setWorkingId(null);
     }
@@ -123,13 +117,11 @@ export function ReviewQueuePage() {
 
   async function handleReject(fact: BusinessFact) {
     setWorkingId(fact.id);
-    setError(null);
-    setSuccess(null);
     try {
       await applyFactStatus(fact, "rejected");
-      setSuccess("Fact rejected.");
+      toast.success("Fact rejected.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to reject fact");
+      toast.error(err instanceof Error ? err.message : "Failed to reject fact");
     } finally {
       setWorkingId(null);
     }
@@ -169,8 +161,6 @@ export function ReviewQueuePage() {
   async function handleBatchApprove() {
     if (selected.size === 0) return;
     setBatchWorking(true);
-    setError(null);
-    setSuccess(null);
     const targets = facts.filter(
       (f) => selected.has(f.id) && f.status === "needs_review",
     );
@@ -187,19 +177,17 @@ export function ReviewQueuePage() {
     setSelected(new Set());
     setBatchWorking(false);
     if (failures.length > 0) {
-      setError(
+      toast.error(
         `Confirmed with ${failures.length} failure(s): ${failures.join("; ")}`,
       );
     } else {
-      setSuccess(`Confirmed ${targets.length} fact(s).`);
+      toast.success(`Confirmed ${targets.length} fact(s).`);
     }
   }
 
   async function handleBatchReject() {
     if (selected.size === 0) return;
     setBatchWorking(true);
-    setError(null);
-    setSuccess(null);
     const targets = facts.filter(
       (f) => selected.has(f.id) && f.status === "needs_review",
     );
@@ -216,11 +204,11 @@ export function ReviewQueuePage() {
     setSelected(new Set());
     setBatchWorking(false);
     if (failures.length > 0) {
-      setError(
+      toast.error(
         `Rejected with ${failures.length} failure(s): ${failures.join("; ")}`,
       );
     } else {
-      setSuccess(`Rejected ${targets.length} fact(s).`);
+      toast.success(`Rejected ${targets.length} fact(s).`);
     }
   }
 
@@ -338,9 +326,6 @@ export function ReviewQueuePage() {
           Review and confirm business facts before they are used.
         </p>
       </div>
-
-      {error && <p className="text-sm text-danger">{error}</p>}
-      {success && <p className="text-sm text-success">{success}</p>}
 
       <Card className="p-4">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">

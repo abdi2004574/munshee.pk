@@ -7,6 +7,7 @@ import { Card } from "@/components/Card";
 import { EmptyState } from "@/components/EmptyState";
 import { Pagination } from "@/components/Pagination";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { SkeletonCard } from "@/components/Skeleton";
 import type { Customer } from "@/lib/types";
 
 const PAGE_SIZE = 24;
@@ -114,32 +115,36 @@ export function CustomersListPage() {
         </div>
       </Card>
 
-      <Card>
-        <DataTable<Customer>
-          columns={columns}
-          data={customers}
-          isLoading={isLoading}
-          emptyState={
-            <EmptyState
-              title="No customers yet"
-              description="Get started by adding your first customer."
-              action={
-                <Link to="/apps/customers/new">
-                  <Button>New Customer</Button>
-                </Link>
-              }
-            />
-          }
-        />
-        <div className="border-t border-gray-100 p-4">
-          <Pagination
-            page={page}
-            pageSize={PAGE_SIZE}
-            totalItems={totalItems}
-            onPageChange={setPage}
+      {isLoading ? (
+        <SkeletonCard />
+      ) : (
+        <Card>
+          <DataTable<Customer>
+            columns={columns}
+            data={customers}
+            isLoading={isLoading}
+            emptyState={
+              <EmptyState
+                title="No customers yet"
+                description="Get started by adding your first customer."
+                action={
+                  <Link to="/apps/customers/new">
+                    <Button>New Customer</Button>
+                  </Link>
+                }
+              />
+            }
           />
-        </div>
-      </Card>
+          <div className="border-t border-gray-100 p-4">
+            <Pagination
+              page={page}
+              pageSize={PAGE_SIZE}
+              totalItems={totalItems}
+              onPageChange={setPage}
+            />
+          </div>
+        </Card>
+      )}
 
       <ConfirmDialog
         open={pendingDelete !== null}

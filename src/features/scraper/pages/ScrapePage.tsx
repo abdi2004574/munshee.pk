@@ -1,4 +1,4 @@
-﻿import { useState, type ChangeEvent } from "react";
+﻿import { useState, useEffect, type ChangeEvent } from "react";
 import { useNavigate } from "react-router";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
@@ -10,6 +10,7 @@ import {
   useCreateImportBatch,
   useCreateImportQueueItem,
 } from "@/features/imports/hooks";
+import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
 import type { JsonValue } from "@/lib/types";
 import { scrapeSchema, validateForm } from "@/lib/validation";
@@ -131,9 +132,9 @@ export function ScrapePage() {
   const scrape = useScrape();
   const createBatch = useCreateImportBatch();
   const createQueueItem = useCreateImportQueueItem();
+  const toast = useToast();
 
   const [url, setUrl] = useState("");
-  const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
@@ -142,12 +143,21 @@ export function ScrapePage() {
   const canScrape = url.trim().length > 0 && !scrape.isPending;
   const canSave = products.length > 0 && !saving;
 
+  useEffect(() => {
+    if (scrape.isError) {
+      toast.error(
+        scrape.error instanceof Error
+          ? scrape.error.message
+          : "Scrape failed",
+      );
+    }
+  }, [scrape.isError, scrape.error, toast]);
+
   function onUrlChange(e: ChangeEvent<HTMLInputElement>) {
     setUrl(e.target.value);
   }
 
   async function onScrape() {
-    setSaveError(null);
     setFieldErrors({});
     const parsed = validateForm(scrapeSchema, { url });
     if (!parsed.success) {
@@ -157,13 +167,12 @@ export function ScrapePage() {
     try {
       await scrape.mutateAsync(parsed.data.url.trim());
     } catch {
-      // error displayed via scrape.error
+      // error displayed via toast
     }
   }
 
   async function onSaveToQueue() {
     if (!result || products.length === 0) return;
-    setSaveError(null);
     setSaving(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -199,7 +208,7 @@ export function ScrapePage() {
 
       navigate(`/apps/review?batch_id=${batch.id}`);
     } catch (err) {
-      setSaveError(
+      toast.error(
         err instanceof Error ? err.message : "Failed to save to review queue",
       );
     } finally {
@@ -226,14 +235,6 @@ export function ScrapePage() {
           error={fieldErrors.url}
         />
 
-        {scrape.isError && (
-          <p className="text-sm text-danger">
-            {scrape.error instanceof Error
-              ? scrape.error.message
-              : "Scrape failed"}
-          </p>
-        )}
-
         <div className="flex justify-end">
           <Button onClick={onScrape} disabled={!canScrape}>
             {scrape.isPending ? "Scraping…" : "Scrape Products"}
@@ -253,7 +254,6 @@ export function ScrapePage() {
             <h2 className="text-lg font-medium text-ink">
               Scraped products ({products.length})
             </h2>
-            {saveError && <p className="text-sm text-danger">{saveError}</p>}
           </div>
 
           <ProductsResult products={products} />
@@ -268,4 +268,3 @@ export function ScrapePage() {
     </div>
   );
 }
-

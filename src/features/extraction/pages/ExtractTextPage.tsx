@@ -1,4 +1,4 @@
-﻿import { useState, type ChangeEvent } from "react";
+﻿import { useState, useEffect, type ChangeEvent } from "react";
 import { useNavigate } from "react-router";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
@@ -9,6 +9,7 @@ import { Money } from "@/components/Money";
 import { useExtractText } from "../hooks";
 import { useCreateBusinessFacts } from "@/features/facts/hooks";
 import { useCreateAuditLog } from "@/features/audit/hooks";
+import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
 import type { BusinessFactInsert } from "@/features/facts/api";
 import type { ExtractedProduct, ExtractedVariant } from "../api";
@@ -196,10 +197,10 @@ export function ExtractTextPage() {
   const extract = useExtractText();
   const createBusinessFacts = useCreateBusinessFacts();
   const createAuditLog = useCreateAuditLog();
+  const toast = useToast();
 
   const [text, setText] = useState("");
   const [context, setContext] = useState("");
-  const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
@@ -208,12 +209,21 @@ export function ExtractTextPage() {
   const canExtract = text.trim().length > 0 && !extract.isPending;
   const canSave = products.length > 0 && !saving;
 
+  useEffect(() => {
+    if (extract.isError) {
+      toast.error(
+        extract.error instanceof Error
+          ? extract.error.message
+          : "Extraction failed",
+      );
+    }
+  }, [extract.isError, extract.error, toast]);
+
   function onTextChange(e: ChangeEvent<HTMLTextAreaElement>) {
     setText(e.target.value);
   }
 
   async function onExtract() {
-    setSaveError(null);
     setFieldErrors({});
     const parsed = validateForm(extractTextSchema, { text, context });
     if (!parsed.success) {
@@ -226,13 +236,12 @@ export function ExtractTextPage() {
         context: parsed.data.context,
       });
     } catch {
-      // error displayed via extract.error
+      // error displayed via toast
     }
   }
 
   async function onSaveToQueue() {
     if (!result || products.length === 0) return;
-    setSaveError(null);
     setSaving(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -254,7 +263,7 @@ export function ExtractTextPage() {
 
       navigate(`/apps/review`);
     } catch (err) {
-      setSaveError(
+      toast.error(
         err instanceof Error ? err.message : "Failed to save facts",
       );
     } finally {
@@ -288,14 +297,6 @@ export function ExtractTextPage() {
           error={fieldErrors.context}
         />
 
-        {extract.isError && (
-          <p className="text-sm text-danger">
-            {extract.error instanceof Error
-              ? extract.error.message
-              : "Extraction failed"}
-          </p>
-        )}
-
         <div className="flex justify-end">
           <Button onClick={onExtract} disabled={!canExtract}>
             {extract.isPending ? "Extracting…" : "Extract Products"}
@@ -315,7 +316,6 @@ export function ExtractTextPage() {
             <h2 className="text-lg font-medium text-ink">
               Extracted products ({products.length})
             </h2>
-            {saveError && <p className="text-sm text-danger">{saveError}</p>}
           </div>
 
           <ProductsResult products={products} />
@@ -330,4 +330,3 @@ export function ExtractTextPage() {
     </div>
   );
 }
-

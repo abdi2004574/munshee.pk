@@ -1,9 +1,10 @@
-import { useEffect } from "react";
+﻿import { useEffect } from "react";
 import { useParams } from "react-router";
 import { usePublicProfile, useIncrementViews } from "../hooks";
 import { Card } from "@/components/Card";
 import { Badge } from "@/components/Badge";
 import { EmptyState } from "@/components/EmptyState";
+import { SkeletonCard } from "@/components/Skeleton";
 
 const CATEGORY_LABELS: Record<string, string> = {
   product: "Products",
@@ -41,7 +42,11 @@ export function PublicProfilePage() {
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-ink-muted">Loading profile…</p>
+        <div className="w-full max-w-3xl space-y-4 px-4">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
       </div>
     );
   }

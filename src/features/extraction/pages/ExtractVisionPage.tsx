@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent } from "react";
+ï»¿import { useState, useEffect, type ChangeEvent } from "react";
 import { useNavigate } from "react-router";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
@@ -8,6 +8,7 @@ import { Money } from "@/components/Money";
 import { useExtractVision } from "../hooks";
 import { useCreateBusinessFacts } from "@/features/facts/hooks";
 import { useCreateAuditLog } from "@/features/audit/hooks";
+import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
 import type { BusinessFactInsert } from "@/features/facts/api";
 import type { ExtractedProduct, ExtractedVariant } from "../api";
@@ -16,7 +17,7 @@ const TRUNCATE_DESCRIPTION = 220;
 
 function truncate(text: string, max: number): string {
   if (text.length <= max) return text;
-  return `${text.slice(0, max).trimEnd()}…`;
+  return `${text.slice(0, max).trimEnd()}â€¦`;
 }
 
 function readFileAsDataUrl(file: File): Promise<string> {
@@ -213,12 +214,12 @@ export function ExtractVisionPage() {
   const extract = useExtractVision();
   const createBusinessFacts = useCreateBusinessFacts();
   const createAuditLog = useCreateAuditLog();
+  const toast = useToast();
 
   const [imageUrl, setImageUrl] = useState("");
   const [fileDataUrl, setFileDataUrl] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
-  const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const result = extract.data;
@@ -228,6 +229,16 @@ export function ExtractVisionPage() {
   const hasInput = Boolean(fileDataUrl) || imageUrl.trim().length > 0;
   const canExtract = hasInput && !extract.isPending;
   const canSave = products.length > 0 && !saving;
+
+  useEffect(() => {
+    if (extract.isError) {
+      toast.error(
+        extract.error instanceof Error
+          ? extract.error.message
+          : "Extraction failed",
+      );
+    }
+  }, [extract.isError, extract.error, toast]);
 
   async function onFileChange(e: ChangeEvent<HTMLInputElement>) {
     setFileError(null);
@@ -251,7 +262,6 @@ export function ExtractVisionPage() {
   }
 
   async function onExtract() {
-    setSaveError(null);
     try {
       if (fileDataUrl) {
         await extract.mutateAsync({
@@ -261,13 +271,12 @@ export function ExtractVisionPage() {
         await extract.mutateAsync({ imageUrl: imageUrl.trim() });
       }
     } catch {
-      // error displayed via extract.error
+      // error displayed via toast
     }
   }
 
   async function onSaveToQueue() {
     if (!result || products.length === 0) return;
-    setSaveError(null);
     setSaving(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -293,7 +302,7 @@ export function ExtractVisionPage() {
 
       navigate(`/apps/review`);
     } catch (err) {
-      setSaveError(
+      toast.error(
         err instanceof Error ? err.message : "Failed to save facts",
       );
     } finally {
@@ -338,7 +347,11 @@ export function ExtractVisionPage() {
               </button>
             </div>
           )}
-          {fileError && <p className="text-xs text-danger">{fileError}</p>}
+          {fileError && (
+            <p className="text-xs text-danger" role="status">
+              {fileError}
+            </p>
+          )}
         </div>
 
         <div className="text-center text-xs text-ink-muted">or</div>
@@ -362,24 +375,16 @@ export function ExtractVisionPage() {
           </div>
         )}
 
-        {extract.isError && (
-          <p className="text-sm text-danger">
-            {extract.error instanceof Error
-              ? extract.error.message
-              : "Extraction failed"}
-          </p>
-        )}
-
         <div className="flex justify-end">
           <Button onClick={onExtract} disabled={!canExtract}>
-            {extract.isPending ? "Extracting…" : "Extract from Image"}
+            {extract.isPending ? "Extractingâ€¦" : "Extract from Image"}
           </Button>
         </div>
       </Card>
 
       {extract.isPending && (
         <Card className="p-6">
-          <p className="text-sm text-ink-muted">Extracting products…</p>
+          <p className="text-sm text-ink-muted">Extracting productsâ€¦</p>
         </Card>
       )}
 
@@ -389,14 +394,13 @@ export function ExtractVisionPage() {
             <h2 className="text-lg font-medium text-ink">
               Extracted products ({products.length})
             </h2>
-            {saveError && <p className="text-sm text-danger">{saveError}</p>}
           </div>
 
           <ProductsResult products={products} />
 
           <div className="flex justify-end">
             <Button onClick={onSaveToQueue} disabled={!canSave}>
-              {saving ? "Saving…" : "Save to Facts"}
+              {saving ? "Savingâ€¦" : "Save to Facts"}
             </Button>
           </div>
         </div>

@@ -1,9 +1,10 @@
-import { useMemo, useState, type ChangeEvent } from "react";
+ï»¿import { useMemo, useState, type ChangeEvent } from "react";
 import { useNavigate } from "react-router";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { Select } from "@/components/Select";
 import { Badge } from "@/components/Badge";
+import { useToast } from "@/components/Toast";
 import { parseCsv } from "../utils/csv";
 import {
   useCreateImportBatch,
@@ -103,16 +104,15 @@ export function ImportNewPage() {
   const navigate = useNavigate();
   const createBatch = useCreateImportBatch();
   const createQueueItem = useCreateImportQueueItem();
+  const toast = useToast();
 
   const [step, setStep] = useState<Step>("upload");
   const [fileName, setFileName] = useState<string>("");
   const [headers, setHeaders] = useState<string[]>([]);
   const [rows, setRows] = useState<string[][]>([]);
-  const [parseError, setParseError] = useState<string | null>(null);
 
   const [tableName, setTableName] = useState<TargetTable>("products");
   const [mapping, setMapping] = useState<Mapping>({});
-  const [runError, setRunError] = useState<string | null>(null);
   const [progress, setProgress] = useState<{ current: number; total: number } | null>(null);
 
   const schema = useMemo(
@@ -130,7 +130,6 @@ export function ImportNewPage() {
   function onFileChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setParseError(null);
     setFileName(file.name);
     const reader = new FileReader();
     reader.onload = () => {
@@ -141,13 +140,13 @@ export function ImportNewPage() {
         setRows(parsed.rows);
         setStep("configure");
       } catch (err) {
-        setParseError(err instanceof Error ? err.message : "Failed to parse CSV");
+        toast.error(err instanceof Error ? err.message : "Failed to parse CSV");
         setHeaders([]);
         setRows([]);
       }
     };
     reader.onerror = () => {
-      setParseError("Failed to read file");
+      toast.error("Failed to read file");
     };
     reader.readAsText(file);
   }
@@ -171,13 +170,12 @@ export function ImportNewPage() {
   }
 
   async function startImport() {
-    setRunError(null);
     if (rows.length === 0) {
-      setRunError("No rows to import");
+      toast.error("No rows to import");
       return;
     }
     if (requiredMissing.length > 0) {
-      setRunError(`Required fields missing: ${requiredMissing.join(", ")}`);
+      toast.error(`Required fields missing: ${requiredMissing.join(", ")}`);
       return;
     }
 
@@ -252,10 +250,8 @@ export function ImportNewPage() {
             });
           }
         } catch (err) {
-          setRunError((prev) =>
-            prev
-              ? `${prev}; row ${i + 1}: ${err instanceof Error ? err.message : "failed"}`
-              : `row ${i + 1}: ${err instanceof Error ? err.message : "failed"}`,
+          toast.error(
+            err instanceof Error ? err.message : "failed",
           );
         }
 
@@ -275,7 +271,7 @@ export function ImportNewPage() {
 
       navigate(`/apps/review?batch_id=${batch.id}`);
     } catch (err) {
-      setRunError(err instanceof Error ? err.message : "Import failed");
+      toast.error(err instanceof Error ? err.message : "Import failed");
       setStep("configure");
     }
   }
@@ -306,7 +302,6 @@ export function ImportNewPage() {
             onChange={onFileChange}
             className="block w-full text-sm text-ink file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100"
           />
-          {parseError && <p className="text-sm text-danger">{parseError}</p>}
         </Card>
       )}
 
@@ -381,8 +376,6 @@ export function ImportNewPage() {
               )}
             </div>
 
-            {runError && <p className="text-sm text-danger">{runError}</p>}
-
             <div className="flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setStep("upload")}>
                 Back
@@ -403,10 +396,10 @@ export function ImportNewPage() {
           <h2 className="text-lg font-medium text-ink">Importing</h2>
           {progress ? (
             <p className="text-sm text-ink-muted">
-              Importing row {progress.current} of {progress.total}…
+              Importing row {progress.current} of {progress.total}â€¦
             </p>
           ) : (
-            <p className="text-sm text-ink-muted">Preparing…</p>
+            <p className="text-sm text-ink-muted">Preparingâ€¦</p>
           )}
           <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
             <div
@@ -419,7 +412,6 @@ export function ImportNewPage() {
               }}
             />
           </div>
-          {runError && <p className="text-sm text-warning">{runError}</p>}
         </Card>
       )}
     </div>

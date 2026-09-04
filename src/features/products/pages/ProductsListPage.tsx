@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+﻿import { useCallback, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { useProducts, useSoftDeleteProduct } from "../hooks";
 import { DataTable, type DataTableColumn } from "@/components/DataTable";
@@ -8,6 +8,7 @@ import { Card } from "@/components/Card";
 import { EmptyState } from "@/components/EmptyState";
 import { Pagination } from "@/components/Pagination";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { SkeletonCard } from "@/components/Skeleton";
 import type { Product } from "@/lib/types";
 
 const PAGE_SIZE = 24;
@@ -147,32 +148,36 @@ export function ProductsListPage() {
         </div>
       </Card>
 
-      <Card>
-        <DataTable<Product>
-          columns={columns}
-          data={products}
-          isLoading={isLoading}
-          emptyState={
-            <EmptyState
-              title="No products yet"
-              description="Get started by creating your first product."
-              action={
-                <Link to="/apps/products/new">
-                  <Button>New Product</Button>
-                </Link>
-              }
-            />
-          }
-        />
-        <div className="border-t border-gray-100 p-4">
-          <Pagination
-            page={page}
-            pageSize={PAGE_SIZE}
-            totalItems={totalItems}
-            onPageChange={setPage}
+      {isLoading ? (
+        <SkeletonCard />
+      ) : (
+        <Card>
+          <DataTable<Product>
+            columns={columns}
+            data={products}
+            isLoading={isLoading}
+            emptyState={
+              <EmptyState
+                title="No products yet"
+                description="Get started by creating your first product."
+                action={
+                  <Link to="/apps/products/new">
+                    <Button>New Product</Button>
+                  </Link>
+                }
+              />
+            }
           />
-        </div>
-      </Card>
+          <div className="border-t border-gray-100 p-4">
+            <Pagination
+              page={page}
+              pageSize={PAGE_SIZE}
+              totalItems={totalItems}
+              onPageChange={setPage}
+            />
+          </div>
+        </Card>
+      )}
 
       <ConfirmDialog
         open={pendingDelete !== null}
