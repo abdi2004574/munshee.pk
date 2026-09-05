@@ -1,8 +1,25 @@
-﻿[api]
+project_id = "munshee-pk"
+
+[api]
 port = 54321
+enabled = true
 
 [db]
 port = 54322
+shadow_port = 54320
+major_version = 15
 
-[project_id]
-id = "munshee-pk"
+[studio]
+port = 54323
+enabled = true
+
+[auth]
+enabled = true
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["http://localhost:5173/auth/callback"]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+enable_confirmations = false

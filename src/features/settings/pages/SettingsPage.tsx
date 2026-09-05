@@ -1,10 +1,11 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { useTenant, useUpdateTenant, useAppSettings, useUpdateAppSettings } from "../hooks";
 import { Card } from "@/components/Card";
 import { FormField } from "@/components/FormField";
 import { Input } from "@/components/Input";
 import { Select } from "@/components/Select";
 import { Button } from "@/components/Button";
+import { Badge } from "@/components/Badge";
 
 const LOCALES = [
   { value: "en-PK", label: "English (Pakistan)" },
@@ -132,6 +133,27 @@ export function SettingsPage() {
               <p className="text-sm text-success">Saved successfully</p>
             )}
           </div>
+        </section>
+
+        <hr className="border-gray-100" />
+
+        <section>
+          <h2 className="text-lg font-semibold text-ink mb-4">Integrations</h2>
+          <Card className="border-warning/20 bg-warning/5 p-4">
+            <div className="flex items-start gap-3">
+              <Badge variant="warning">Coming soon</Badge>
+              <div>
+                <p className="text-sm font-medium text-warning">
+                  Facebook and Instagram integration is on its way.
+                </p>
+                <p className="text-xs text-ink-muted">
+                  You will soon be able to connect your Facebook Page or Instagram
+                  Business account to let Munshee extract products, prices, and
+                  business facts directly from your social content.
+                </p>
+              </div>
+            </div>
+          </Card>
         </section>
       </Card>
     </div>

@@ -59,7 +59,6 @@ export function SocialConnectPage() {
     setCredentialsPending(false);
     try {
       const authUrl = await initiate.mutateAsync({ provider });
-      // Redirect the browser to the Meta OAuth dialog.
       window.location.href = authUrl;
     } catch (err) {
       const msg =
@@ -111,7 +110,7 @@ export function SocialConnectPage() {
           disabled={revokingId === connection.id}
           onClick={() => handleRevoke(connection)}
         >
-          {revokingId === connection.id ? "Revokingâ€¦" : "Revoke"}
+          {revokingId === connection.id ? "Revoking…" : "Revoke"}
         </Button>
       </div>
     );
@@ -147,7 +146,7 @@ export function SocialConnectPage() {
         disabled={initiate.isPending}
         onClick={() => handleConnect(config.provider)}
       >
-        {initiate.isPending ? "Connectingâ€¦" : `Connect ${config.label}`}
+        {initiate.isPending ? "Connecting…" : `Connect ${config.label}`}
       </Button>
     );
   }
@@ -165,16 +164,15 @@ export function SocialConnectPage() {
       {credentialsPending && (
         <Card className="border-warning/20 bg-warning/5 p-4">
           <div className="flex items-start gap-3">
-            <Badge variant="warning">Pending</Badge>
+            <Badge variant="warning">Coming soon</Badge>
             <div>
               <p className="text-sm font-medium text-warning">
-                Code-complete-but-untested-pending-credentials
+                Facebook and Instagram integration is on its way.
               </p>
               <p className="text-xs text-ink-muted">
-                Facebook/Instagram OAuth is implemented but not yet wired up. Ask
-                the founder to register a Facebook/Instagram app and set the
-                FACEBOOK_APP_ID and FACEBOOK_APP_SECRET Edge Function secrets in
-                the Supabase dashboard.
+                You will soon be able to connect your Facebook Page or Instagram
+                Business account to let Munshee extract products, prices, and
+                business facts directly from your social content.
               </p>
             </div>
           </div>
@@ -191,7 +189,7 @@ export function SocialConnectPage() {
               </p>
               <p className="text-xs text-ink-muted">
                 {factsCount > 0
-                  ? `Extracted ${factsCount} fact${factsCount === 1 ? "" : "s"} â€” awaiting your review.`
+                  ? `Extracted ${factsCount} fact${factsCount === 1 ? "" : "s"} — awaiting your review.`
                   : "No product facts were extracted from this account."}
               </p>
             </div>
@@ -220,7 +218,7 @@ export function SocialConnectPage() {
       <Card className="p-6">
         <h2 className="text-lg font-semibold text-ink">Connected accounts</h2>
         {connectionsLoading ? (
-          <p className="mt-4 text-sm text-ink-muted">Loading connectionsâ€¦</p>
+          <p className="mt-4 text-sm text-ink-muted">Loading connections…</p>
         ) : (connections ?? []).length === 0 ? (
           <p className="mt-4 text-sm text-ink-muted">
             You haven't connected any accounts yet.
@@ -238,7 +236,7 @@ export function SocialConnectPage() {
           {PROVIDERS.map(renderConnectSlot)}
         </div>
         <p className="mt-4 text-xs text-ink-muted">
-          This opens Meta's OAuth dialog. You'll authorise Munshee.pk to read
+          This opens Meta's OAuth dialog. You will authorise Munshee.pk to read
           your page content. No tokens are stored without your consent.
         </p>
       </Card>

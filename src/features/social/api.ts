@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+﻿import { supabase } from "@/lib/supabase";
 import type { SocialConnection } from "@/lib/types";
 
 export interface InitiateSocialConnectResult {
@@ -14,10 +14,27 @@ export async function initiateSocialConnect(
   );
 
   if (error) {
-    const errMsg =
-      (error as unknown as { data?: { error?: string } })?.data?.error ??
-      error.message ??
-      "Failed to initiate social connect";
+    let errMsg = "Failed to initiate social connect";
+
+    const anyError = error as unknown as {
+      data?: { error?: string };
+      context?: { json?: () => Promise<{ error?: string }> };
+      message?: string;
+    };
+
+    if (anyError.data?.error) {
+      errMsg = anyError.data.error;
+    } else if (anyError.context?.json) {
+      try {
+        const body = await anyError.context.json();
+        if (body.error) errMsg = body.error;
+      } catch {
+        if (anyError.message) errMsg = anyError.message;
+      }
+    } else if (anyError.message) {
+      errMsg = anyError.message;
+    }
+
     throw new Error(errMsg);
   }
 

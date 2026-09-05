@@ -1,4 +1,4 @@
-import { defineConfig, type Plugin } from "vite";
+﻿import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { cloudflare } from "@cloudflare/vite-plugin";
 import fs from "node:fs";
@@ -43,6 +43,9 @@ function spaFallback(): Plugin {
 }
 
 export default defineConfig({
+  server: {
+    allowedHosts: true,
+  },
   appType: "spa",
   plugins: [react(), cloudflare(), spaFallback()],
   resolve: {
@@ -54,3 +57,4 @@ export default defineConfig({
     outDir: "dist",
   },
 });
+
