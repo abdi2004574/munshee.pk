@@ -8,7 +8,12 @@
     "build": "tsc -b && vite build",
     "cf:build": "vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "dev:supabase": "supabase start",
+    "dev:supabase:stop": "supabase stop",
+    "dev:functions": "supabase functions serve",
+    "test:e2e": "playwright test",
+    "test:e2e:ci": "playwright test --reporter=github"
   },
   "dependencies": {
     "@fontsource/inter": "^5.1.0",
