@@ -1,6 +1,6 @@
-ï»¿# Munshee.pk
+# Munshee.pk
 
-Pakistan's first Business Brain OS â€” an AI-driven operating system for online sellers that extracts, verifies, and publishes business facts.
+Pakistan's first Business Brain OS — an AI-driven operating system for online sellers that extracts, verifies, and publishes business facts.
 
 ## Overview
 
@@ -17,7 +17,7 @@ Munshee.pk ingests merchant inputs (spreadsheets, product images, competitor pag
   - Playwright scraper service (`scraper/`)
   - Public, no-auth `/profile/:tenantId` profile page
   - "Ask Munshee" chat
-- **Real but runtime-untested â€” pending live credentials:**
+- **Real but runtime-untested — pending live credentials:**
   - Every Supabase-dependent feature requires a **live Supabase project** with all migrations applied. Auth, commerce, the review queue, extraction, and the chat will not run until you supply `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, the `OPENROUTER_API_KEY` secret, and deploy the Edge Functions.
 - **Not yet built:**
   - Nothing. All originally planned features are implemented. There are no stubbed or missing phase items remaining.
@@ -26,11 +26,11 @@ Munshee.pk ingests merchant inputs (spreadsheets, product images, competitor pag
 
 Munshee is built on a single **Business Brain** data model.
 
-1. `business_facts` â€” the single source of truth. Each row is one claim about the business: `category`, `label`, `value`, `confidence`, `source_type`, `source_ref`, `status` (`needs_review` -> `confirmed` -> `rejected`).
-2. `audit_log` â€” append-only trail of every confirm/edit/delete/import action on a fact, with `old_value`/`new_value` JSONB.
-3. `ask_logs` â€” append-only record of every question asked of Munshee, used as conversational training data.
-4. Commerce tables (`products`, `variants`, `customers`, `orders`, `inventory`, ...) â€” **operational consumers** of confirmed facts; facts are the upstream, commerce is the downstream.
-5. `public_profile` â€” a **read-only view** that exposes only `confirmed` facts to unauthenticated visitors on `/profile/:tenantId`.
+1. `business_facts` — the single source of truth. Each row is one claim about the business: `category`, `label`, `value`, `confidence`, `source_type`, `source_ref`, `status` (`needs_review` -> `confirmed` -> `rejected`).
+2. `audit_log` — append-only trail of every confirm/edit/delete/import action on a fact, with `old_value`/`new_value` JSONB.
+3. `ask_logs` — append-only record of every question asked of Munshee, used as conversational training data.
+4. Commerce tables (`products`, `variants`, `customers`, `orders`, `inventory`, ...) — **operational consumers** of confirmed facts; facts are the upstream, commerce is the downstream.
+5. `public_profile` — a **read-only view** that exposes only `confirmed` facts to unauthenticated visitors on `/profile/:tenantId`.
 
 ```mermaid
 graph LR
@@ -67,7 +67,7 @@ graph LR
    npx supabase functions deploy extract-vision
    npx supabase functions deploy ask-munshee
    ```
-6. (Optional) Run the Playwright scraper service locally â€” see `scraper/README.md`.
+6. (Optional) Run the Playwright scraper service locally — see `scraper/README.md`.
 7. Install dependencies and start the dev server:
    ```bash
    pnpm install
@@ -80,8 +80,8 @@ graph LR
 - Frontend: React 19, TypeScript 5.x (strict), Vite 6, React Router 7, Tailwind 3.4, TanStack Query v5
 - Backend: Supabase (Postgres, Auth PKCE, Edge Functions on Deno)
 - LLMs via OpenRouter (server-side only):
-  - `meta-llama/llama-3.3-70b` â€” text extraction + Q&A
-  - `qwen/qwen-2.5-vl-72b` â€” vision extraction
+  - `meta-llama/llama-3.3-70b` — text extraction + Q&A
+  - `qwen/qwen-2.5-vl-72b` — vision extraction
 - Scraper: Playwright (Node.js + Express microservice, deploy separately on Render/Railway)
 - Hosting: React frontend on Cloudflare Pages (`@cloudflare/vite-plugin`); functions + DB on Supabase
 
@@ -111,8 +111,30 @@ graph LR
 | `/apps/extract/vision` | Extract structured facts from an image (OpenRouter vision) |
 | `/apps/scrape` | Trigger a Playwright scrape of a URL |
 | `/apps/ask` | Ask Munshee chat |
-| `/profile/:tenantId` | Public business profile â€” no auth required |
+| `/profile/:tenantId` | Public business profile — no auth required |
 
+
+## Local Development with HTTPS (Cloudflare Tunnel)
+
+For one-on-one merchant demos without deploying to production, you can expose your local dev server with a real HTTPS URL using cloudflared:
+
+### Install cloudflared
+- Windows: winget install Cloudflare.cloudflared
+- macOS: rew install cloudflared
+- Linux: see https://github.com/cloudflare/cloudflared/releases
+
+### Run a quick tunnel (no account needed)
+\\\ash
+# Terminal 1: start dev server
+pnpm dev
+
+# Terminal 2: start tunnel
+cloudflared tunnel --url http://localhost:5173
+\\\
+
+Cloudflared will print a \https://<random>.trycloudflare.com\ URL. Share this URL with your test merchant — they get a real HTTPS link to your local instance.
+
+**Note:** Quick tunnels are temporary. For persistent URLs, create a named tunnel (requires a Cloudflare account).
 ## Flagged Costs
 
 - **Supabase** (free tier): 500 MB database, 50k monthly active users. Auth + commerce + functions usage fits this tier for development and small pilots.
@@ -121,7 +143,7 @@ graph LR
 
 ## Notes
 
-- No Gemini anywhere in the codebase â€” all LLM calls go through OpenRouter.
+- No Gemini anywhere in the codebase — all LLM calls go through OpenRouter.
 - All LLM calls are server-side via Supabase Edge Functions; no model keys ever reach the browser.
 - Row-level security is enabled on every table, scoped to `tenant_id = auth.uid()`.
 - Money is stored as `numeric(12,2)` in Postgres and rendered through the `<Money>` component (`src/components/Money.tsx`).
@@ -129,5 +151,6 @@ graph LR
 ## Contributing
 
 Pull requests are welcome. Run `pnpm typecheck` before opening one; `pnpm build` must pass.
+
 
 

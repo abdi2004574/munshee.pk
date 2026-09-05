@@ -5,6 +5,7 @@ import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { Card } from "@/components/Card";
 import { signupSchema, validateForm } from "@/lib/validation";
+import { identifyUser } from "@/lib/analytics";
 
 export function SignupPage() {
   const navigate = useNavigate();
@@ -47,6 +48,10 @@ export function SignupPage() {
     if (error) {
       setError(error.message);
       return;
+    }
+
+    if (data.user?.id) {
+      identifyUser(data.user.id, { email: data.user.email });
     }
 
     if (data.session) {
@@ -129,4 +134,3 @@ export function SignupPage() {
     </div>
   );
 }
-

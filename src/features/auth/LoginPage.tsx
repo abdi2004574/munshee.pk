@@ -5,6 +5,7 @@ import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { Card } from "@/components/Card";
 import { loginSchema, validateForm } from "@/lib/validation";
+import { identifyUser } from "@/lib/analytics";
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -28,7 +29,7 @@ export function LoginPage() {
       return;
     }
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: parsed.data.email,
       password: parsed.data.password,
     });
@@ -42,6 +43,10 @@ export function LoginPage() {
 
     if (rememberMe) {
       localStorage.setItem("munshee-remember-me", "true");
+    }
+
+    if (data.user?.id) {
+      identifyUser(data.user.id, { email: data.user.email });
     }
 
     navigate("/dashboard");
@@ -102,4 +107,3 @@ export function LoginPage() {
     </div>
   );
 }
-
