@@ -287,6 +287,7 @@ Deno.serve(async (req: Request) => {
     const appSecret = Deno.env.get("FACEBOOK_APP_SECRET");
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const tokenEncryptionKey = Deno.env.get("TOKEN_ENCRYPTION_KEY");
 
     if (!appId || !appSecret || !supabaseUrl || !serviceRoleKey) {
       return jsonResponse(500, {
@@ -346,20 +347,37 @@ Deno.serve(async (req: Request) => {
         auth: { persistSession: false },
       });
 
+      let encryptedToken: Uint8Array | null = null;
+      if (tokenEncryptionKey) {
+        const { data: encrypted, error: encryptError } = await supabase.rpc(
+          "encrypt_token",
+          {
+            p_token: pageToken,
+            p_key: tokenEncryptionKey,
+          },
+        );
+        if (!encryptError && encrypted) {
+          encryptedToken = new Uint8Array(encrypted as number[]);
+        }
+      }
+
+      const upsertPayload: Record<string, unknown> = {
+        tenant_id,
+        provider,
+        page_id: pageId,
+        page_name: pageName,
+        access_token: pageToken,
+        token_expires_at: tokenExpiresAt,
+        last_sync_at: new Date().toISOString(),
+      };
+
+      if (encryptedToken) {
+        upsertPayload.encrypted_token = encryptedToken;
+      }
+
       const { data: conn, error: upsertError } = await supabase
         .from("social_connections")
-        .upsert(
-          {
-            tenant_id,
-            provider,
-            page_id: pageId,
-            page_name: pageName,
-            access_token: pageToken,
-            token_expires_at: tokenExpiresAt,
-            last_sync_at: new Date().toISOString(),
-          },
-          { onConflict: "tenant_id,provider,page_id" },
-        )
+        .upsert(upsertPayload, { onConflict: "tenant_id,provider,page_id" })
         .select("id")
         .single();
 
