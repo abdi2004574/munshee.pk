@@ -141,6 +141,26 @@ Cloudflared will print a \https://<random>.trycloudflare.com\ URL. Share this UR
 - **Cloudflare Pages**: free.
 - **OpenRouter**: the free tier is heavily rate-limited for the heavy models used here (~50 requests/day on `:free` models). To raise the daily free-model limit from 50 to 1,000 requests/day, purchase **$10 in credits** (one-time, credits never expire). Note: the 20 requests/minute cap applies regardless of balance and cannot be raised by paying more. Treat the free tier as smoke-test-only; for any real usage, the $10 credit purchase is recommended.
 
+
+
+## Free-Tier Integrations
+
+The following services are **optional** and the app runs fine with them unset. Set them when you're ready:
+
+| Service | Purpose | Free Tier | Setup URL |
+|---------|---------|-----------|-----------|
+| Resend | Auth emails (password reset, email verification) | 3,000 emails/month, 100/day, 3 domains | [resend.com/keys](https://resend.com/keys) |
+| PostHog | Product analytics | 1M events/month, 1 project | [posthog.com/signup](https://posthog.com/signup) |
+| GlitchTip or Sentry | Error tracking | 1,000 events/mo (GlitchTip) or 5,000 errors/mo (Sentry) | [glitchtip.com](https://app.glitchtip.com) or [sentry.io](https://sentry.io) |
+| UptimeRobot | Uptime monitoring | 50 monitors, 5-min intervals | [uptimerobot.com](https://uptimerobot.com) |
+| OpenRouter | LLM inference (extraction, Ask Munshee) | $10 one-time, 1000 req/day | [openrouter.ai](https://openrouter.ai) |
+
+All free tiers verified directly on the provider's pricing page — no credit card required for the free tier on any of these (Resend's Free plan is limited to 100 emails/day).
+
+**Note:** free-for-dev (ripienaar/free-for-dev) was used as a *discovery* list; all limits above were verified against the current provider pricing pages, not just the list text.
+
+**UptimeRobot setup:** Once deployed to Cloudflare Pages, create a free UptimeRobot account, add a monitor for your munshee.pk URL (HTTP(s) monitor type), and set the alert contact to your email. The 50-monitor free tier covers the main site plus any subdomains you expose.
+
 ## Notes
 
 - No Gemini anywhere in the codebase — all LLM calls go through OpenRouter.
