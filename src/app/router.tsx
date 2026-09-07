@@ -1,10 +1,11 @@
-ï»¿import { lazy, Suspense } from "react";
+import { lazy, Suspense } from "react";
 import { createBrowserRouter, Navigate, Outlet } from "react-router";
 import { useSession } from "@/features/auth/useSession";
 import { LoginPage } from "@/features/auth/LoginPage";
 import { SignupPage } from "@/features/auth/SignupPage";
 import { CallbackPage } from "@/features/auth/CallbackPage";
 import { AppShell } from "@/components/AppShell";
+import { PricingPage } from "@/features/pricing/pages/PricingPage";
 
 const LazyDashboardPage = lazy(() => import("@/routes/DashboardPage").then(m => ({ default: m.DashboardPage })));
 const LazyProductsListPage = lazy(() => import("@/features/products/pages/ProductsListPage").then(m => ({ default: m.ProductsListPage })));
@@ -22,16 +23,19 @@ const LazyReviewQueuePage = lazy(() => import("@/features/reviews/pages/ReviewQu
 const LazyReviewDetailPage = lazy(() => import("@/features/reviews/pages/ReviewDetailPage").then(m => ({ default: m.ReviewDetailPage })));
 const LazyExtractTextPage = lazy(() => import("@/features/extraction/pages/ExtractTextPage").then(m => ({ default: m.ExtractTextPage })));
 const LazyExtractVisionPage = lazy(() => import("@/features/extraction/pages/ExtractVisionPage").then(m => ({ default: m.ExtractVisionPage })));
+const LazyExtractFactsPage = lazy(() => import("@/features/extraction/pages/ExtractFactsPage").then(m => ({ default: m.ExtractFactsPage })));
 const LazyScrapePage = lazy(() => import("@/features/scraper/pages/ScrapePage").then(m => ({ default: m.ScrapePage })));
 const LazyAskPage = lazy(() => import("@/features/ask/pages/AskPage").then(m => ({ default: m.AskPage })));
 const LazySocialConnectPage = lazy(() => import("@/features/social/pages/SocialConnectPage").then(m => ({ default: m.SocialConnectPage })));
 const LazyWhatsappExportPage = lazy(() => import("@/features/whatsapp/pages/WhatsappExportPage").then(m => ({ default: m.WhatsappExportPage })));
 const LazyPublicProfilePage = lazy(() => import("@/features/public-profile/pages/PublicProfilePage").then(m => ({ default: m.PublicProfilePage })));
 const LazyBillingPage = lazy(() => import("@/features/billing/pages/BillingPage").then(m => ({ default: m.BillingPage })));
+const LazyClientsPage = lazy(() => import("@/features/clients/pages/ClientsPage").then(m => ({ default: m.ClientsPage })));
+const LazyAdminPage = lazy(() => import("@/features/admin/pages/AdminPage").then(m => ({ default: m.AdminPage })));
 
 function RouteSuspense({ children }: { children: React.ReactNode }) {
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center text-ink-muted">Loadingâ€¦</div>}>
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center text-ink-muted">Loading…</div>}>
       {children}
     </Suspense>
   );
@@ -43,7 +47,7 @@ function ProtectedRoute() {
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center text-ink-muted">
-        Loadingâ€¦
+        Loading…
       </div>
     );
   }
@@ -65,7 +69,7 @@ function RootRedirect() {
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center text-ink-muted">
-        Loadingâ€¦
+        Loading…
       </div>
     );
   }
@@ -77,6 +81,10 @@ export const router = createBrowserRouter([
   {
     path: "/",
     element: <RootRedirect />,
+  },
+  {
+    path: "/pricing",
+    element: <RouteSuspense><PricingPage /></RouteSuspense>,
   },
   {
     path: "/profile/:tenantId",
@@ -125,12 +133,13 @@ export const router = createBrowserRouter([
       { path: "scrape", element: <RouteSuspense><LazyScrapePage /></RouteSuspense> },
       { path: "extract/text", element: <RouteSuspense><LazyExtractTextPage /></RouteSuspense> },
       { path: "extract/vision", element: <RouteSuspense><LazyExtractVisionPage /></RouteSuspense> },
+      { path: "extract/facts", element: <RouteSuspense><LazyExtractFactsPage /></RouteSuspense> },
       { path: "ask", element: <RouteSuspense><LazyAskPage /></RouteSuspense> },
       { path: "social", element: <RouteSuspense><LazySocialConnectPage /></RouteSuspense> },
       { path: "whatsapp", element: <RouteSuspense><LazyWhatsappExportPage /></RouteSuspense> },
       { path: "billing", element: <RouteSuspense><LazyBillingPage /></RouteSuspense> },
+      { path: "clients", element: <RouteSuspense><LazyClientsPage /></RouteSuspense> },
+      { path: "admin", element: <RouteSuspense><LazyAdminPage /></RouteSuspense> },
     ],
   },
 ]);
-
-

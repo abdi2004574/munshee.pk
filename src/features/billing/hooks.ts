@@ -1,50 +1,80 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  claimFreeCredits,
+  getPlans,
+  getCurrentSubscription,
+  createPendingSubscription,
+  getCurrentPlanData,
+  getActionPacks,
+  purchaseActionPack,
   getCreditLedger,
-  getCurrentCreditBalance,
-  getSubscriptionPlans,
-  initiatePayment,
 } from "./api";
 
-export function useCreditBalance() {
-  return useQuery({
-    queryKey: ["creditBalance"],
-    queryFn: getCurrentCreditBalance,
-    staleTime: 30_000,
-  });
-}
+const PLANS_KEY = ["billing-plans"] as const;
+const SUB_KEY = ["billing-subscription"] as const;
 
-export function useSubscriptionPlans() {
+export function useBillingPlans() {
   return useQuery({
-    queryKey: ["subscriptionPlans"],
-    queryFn: getSubscriptionPlans,
+    queryKey: PLANS_KEY,
+    queryFn: getPlans,
     staleTime: 60_000,
   });
 }
 
-export function useCreditLedger() {
+export function useBillingSubscription(businessId: string | undefined) {
   return useQuery({
-    queryKey: ["creditLedger"],
-    queryFn: getCreditLedger,
-    staleTime: 30_000,
+    queryKey: [...SUB_KEY, businessId],
+    queryFn: () => getCurrentSubscription(businessId as string),
+    enabled: Boolean(businessId),
+    staleTime: 60_000,
   });
 }
 
-export function useClaimFreeCredits() {
+export function useBillingPlanData(businessId: string | undefined) {
+  return useQuery({
+    queryKey: ["billing-plan-data", businessId],
+    queryFn: () => getCurrentPlanData(businessId as string),
+    enabled: Boolean(businessId),
+    staleTime: 60_000,
+  });
+}
+
+export function useCreatePendingSubscription() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: claimFreeCredits,
+    mutationFn: ({ businessId, planId, referenceNumber }: { businessId: string; planId: string; referenceNumber: string }) =>
+      createPendingSubscription(businessId, planId, referenceNumber),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["creditBalance"] });
-      qc.invalidateQueries({ queryKey: ["creditLedger"] });
+      qc.invalidateQueries({ queryKey: SUB_KEY });
+      qc.invalidateQueries({ queryKey: ["billing-plan-data"] });
     },
   });
 }
 
-export function useInitiatePayment() {
+export function useActionPacks() {
+  return useQuery({
+    queryKey: ["action-packs"],
+    queryFn: getActionPacks,
+    staleTime: 60_000,
+  });
+}
+
+export function usePurchaseActionPack() {
+  const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ provider, planId }: { provider: "jazzcash" | "easypaisa"; planId: string }) =>
-      initiatePayment(provider, planId),
+    mutationFn: ({ businessId, packSku }: { businessId: string; packSku: string }) =>
+      purchaseActionPack(businessId, packSku),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: SUB_KEY });
+      qc.invalidateQueries({ queryKey: ["billing-plan-data"] });
+    },
+  });
+}
+
+export function useCreditLedger(businessId: string | undefined) {
+  return useQuery({
+    queryKey: ["credit-ledger", businessId],
+    queryFn: () => getCreditLedger(businessId as string),
+    enabled: Boolean(businessId),
+    staleTime: 60_000,
   });
 }

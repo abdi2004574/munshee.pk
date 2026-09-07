@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+﻿import { supabase } from "@/lib/supabase";
 
 export interface ExtractedField<T = unknown> {
   value: T;
@@ -60,5 +60,29 @@ export async function invokeExtractVision(
   );
   if (error) throw error;
   if (!data) throw new Error("No data returned from extract-vision");
+  return data;
+}
+
+export interface ExtractFactsResult {
+  facts: Array<{
+    category: string;
+    label: string;
+    value: string;
+    confidence: number;
+    quote: string;
+  }>;
+  businessName: string;
+  warning?: string;
+}
+
+export async function invokeExtractFacts(
+  url: string,
+): Promise<ExtractFactsResult> {
+  const { data, error } = await supabase.functions.invoke<ExtractFactsResult>(
+    "extract-facts",
+    { body: { url } },
+  );
+  if (error) throw error;
+  if (!data) throw new Error("No data returned from extract-facts");
   return data;
 }

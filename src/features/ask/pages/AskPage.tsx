@@ -6,6 +6,7 @@ import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { EmptyState } from "@/components/EmptyState";
+import { PlanGatingError } from "@/components/PlanGatingError";
 
 interface Message {
   role: "user" | "assistant";
@@ -20,6 +21,7 @@ export function AskPage() {
   const [input, setInput] = useState("");
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [gatingError, setGatingError] = useState<{ mode: "actions_exhausted" | "feature_cap"; feature?: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -60,8 +62,16 @@ export function AskPage() {
         timestamp: Date.now(),
       };
       setMessages((prev) => [...prev, assistantMessage]);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to get answer");
+    } catch (err: unknown) {
+      const maybeErr = err as { status?: number; body?: { code?: string; feature?: string; actionsLeft?: number; actionsMonthly?: number } };
+      if (maybeErr?.status === 402 && maybeErr?.body?.code) {
+        setGatingError({
+          mode: maybeErr.body.code === "FEATURE_CAP" ? "feature_cap" : "actions_exhausted",
+          feature: maybeErr.body.feature,
+        });
+      } else {
+        setError(err instanceof Error ? err.message : "Something went wrong");
+      }
     }
   }
 
@@ -129,6 +139,14 @@ export function AskPage() {
           {ask.isPending ? "Asking…" : "Send"}
         </Button>
       </div>
+      {gatingError && (
+        <PlanGatingError
+          open={!!gatingError}
+          onClose={() => setGatingError(null)}
+          mode={gatingError.mode}
+          feature={gatingError.feature}
+        />
+      )}
     </div>
   );
 }

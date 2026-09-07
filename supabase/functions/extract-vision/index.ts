@@ -235,62 +235,37 @@ function detectMimeAndBuildDataUrl(raw: string): string {
   return `data:image/png;base64,${raw}`;
 }
 
-async function enforceCredits(
+async function enforceAction(
   supabase: ReturnType<typeof createClient>,
-  tenantId: string,
+  businessId: string,
   actionType: string,
-): Promise<{ ok: true; balanceAfter: number } | { ok: false; status: number; body: Record<string, unknown> }> {
-  const { data: costRow, error: costError } = await supabase
-    .from("credit_costs" as never)
-    .select("credits")
-    .eq("action_type", actionType)
-    .maybeSingle();
-  if (costError || !costRow) {
-    return { ok: false, status: 500, body: { error: "credit_config_missing", message: `No credit cost configured for action: ${actionType}` } };
-  }
-  const cost = Number((costRow as { credits: number }).credits);
+): Promise<{ ok: true; actionsLeft: number } | { ok: false; status: number; body: Record<string, unknown> }> {
+  const { data, error } = await supabase.rpc("consume_action", {
+    p_business_id: businessId,
+    p_action_type: actionType,
+  } as never);
 
-  const { data: tenantRow, error: tenantError } = await supabase
-    .from("tenants" as never)
-    .select("credit_balance")
-    .eq("id", tenantId)
-    .maybeSingle();
-  if (tenantError || !tenantRow) {
-    return { ok: false, status: 500, body: { error: "tenant_not_found" } };
+  if (error) {
+    return { ok: false, status: 500, body: { error: "action_check_failed", message: error.message } };
   }
-  const currentBalance = Number((tenantRow as { credit_balance: number }).credit_balance);
 
-  if (currentBalance < cost) {
+  const result = data as { ok: boolean; actions_left: number; subscription_status: string } | null;
+
+  if (!result || !result.ok) {
     return {
       ok: false,
       status: 402,
       body: {
-        error: "out_of_credits",
-        message: `You have ${currentBalance} credits, but this action costs ${cost} credits. Please top up your balance.`,
-        required: cost,
-        available: currentBalance,
+        code: "ACTIONS_EXHAUSTED",
+        error: "actions_exhausted",
+        message: "Aapke mahine ke Actions khatam ho gaye — agle month dobara milenge, ya Business plan lein.",
+        actionsLeft: result?.actions_left ?? 0,
+        subscriptionStatus: result?.subscription_status ?? "unknown",
       },
     };
   }
 
-  const { data: updatedRows, error: updateError } = await supabase.rpc("deduct_tenant_credits" as never, { p_tenant_id: tenantId, p_amount: cost } as never);
-  if (updateError) {
-    return { ok: false, status: 500, body: { error: "credit_deduction_failed", message: updateError.message } };
-  }
-  const newBalance = updatedRows as unknown as number | null;
-  if (newBalance === null || newBalance === undefined) {
-    return { ok: false, status: 402, body: { error: "out_of_credits", message: "Insufficient credits (concurrent deduction)." } };
-  }
-
-  await supabase.from("credit_ledger" as never).insert({
-    tenant_id: tenantId,
-    action_type: actionType,
-    credits_used: cost,
-    balance_after: newBalance,
-    reference_id: null,
-  } as never);
-
-  return { ok: true, balanceAfter: newBalance };
+  return { ok: true, actionsLeft: result.actions_left };
 }
 
 async function checkRateLimit(
@@ -377,9 +352,9 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const creditResult = await enforceCredits(supabase, tenantId, "vision_extraction");
-  if (!creditResult.ok) {
-    return jsonResponse(creditResult.status, creditResult.body as Record<string, unknown>);
+  const actionResult = await enforceAction(supabase, tenantId, "vision_extraction");
+  if (!actionResult.ok) {
+    return jsonResponse(actionResult.status, actionResult.body as Record<string, unknown>);
   }
 
   const payload = {

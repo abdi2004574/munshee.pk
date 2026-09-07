@@ -1,10 +1,12 @@
-﻿const requiredEnvVars = {
+const requiredEnvVars = {
   VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
   VITE_SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY,
 };
 
 const optionalEnvVars = {
   VITE_SCRAPER_URL: import.meta.env.VITE_SCRAPER_URL,
+  VITE_PAYMENT_ACCOUNT: import.meta.env.VITE_PAYMENT_ACCOUNT,
+  VITE_ALLOWED_ADMIN_EMAILS: import.meta.env.VITE_ALLOWED_ADMIN_EMAILS,
 };
 
 function validateEnv() {
@@ -37,6 +39,7 @@ export function getEnv() {
     VITE_SUPABASE_URL: (requiredEnvVars.VITE_SUPABASE_URL || "").trim(),
     VITE_SUPABASE_ANON_KEY: (requiredEnvVars.VITE_SUPABASE_ANON_KEY || "").trim(),
     VITE_SCRAPER_URL: (optionalEnvVars.VITE_SCRAPER_URL || "http://localhost:3001").trim(),
+    VITE_PAYMENT_ACCOUNT: (optionalEnvVars.VITE_PAYMENT_ACCOUNT || "03XX-XXXXXXX (JazzCash/Easypaisa Account Title)").trim(),
+    VITE_ALLOWED_ADMIN_EMAILS: (optionalEnvVars.VITE_ALLOWED_ADMIN_EMAILS || "admin@munshee.pk").trim(),
   });
 }
-

@@ -333,6 +333,132 @@ export interface Database {
           active?: boolean;
         };
       };
+      plans: {
+        Row: {
+          id: string;
+          name: string;
+          price_pkr: number;
+          actions_monthly: number;
+          max_businesses: number;
+          features: Record<string, JsonValue>;
+          sort_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id: string;
+          name: string;
+          price_pkr: number;
+          actions_monthly: number;
+          max_businesses?: number;
+          features?: Record<string, JsonValue>;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          price_pkr?: number;
+          actions_monthly?: number;
+          max_businesses?: number;
+          features?: Record<string, JsonValue>;
+          sort_order?: number;
+          updated_at?: string;
+        };
+      };
+      subscriptions: {
+        Row: {
+          id: string;
+          business_id: string;
+          plan_id: string;
+          status: string;
+          period_start: string | null;
+          period_end: string | null;
+          admin_granted: boolean;
+          actions_remaining: number;
+          last_grant_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          plan_id: string;
+          status?: string;
+          period_start?: string | null;
+          period_end?: string | null;
+          admin_granted?: boolean;
+          actions_remaining?: number;
+          last_grant_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          business_id?: string;
+          plan_id?: string;
+          status?: string;
+          period_start?: string | null;
+          period_end?: string | null;
+          admin_granted?: boolean;
+          actions_remaining?: number;
+          last_grant_at?: string | null;
+          updated_at?: string;
+        };
+      };
+      action_packs: {
+        Row: {
+          sku: string;
+          actions: number;
+          price_pkr: number;
+          validity_days: number;
+          created_at: string;
+        };
+        Insert: {
+          sku: string;
+          actions: number;
+          price_pkr: number;
+          validity_days?: number;
+          created_at?: string;
+        };
+        Update: {
+          sku?: string;
+          actions?: number;
+          price_pkr?: number;
+          validity_days?: number;
+          created_at?: string;
+        };
+      };
+      credit_ledger: {
+        Row: {
+          id: string;
+          business_id: string;
+          delta: number;
+          reason: string;
+          balance_after: number;
+          expires_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          delta: number;
+          reason: string;
+          balance_after: number;
+          expires_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          business_id?: string;
+          delta?: number;
+          reason?: string;
+          balance_after?: number;
+          expires_at?: string | null;
+          created_at?: string;
+        };
+      };
     };
   };
 }
@@ -567,3 +693,18 @@ export type AutonomySettingsUpdate = Database["public"]["Tables"]["autonomy_sett
 export type KillSwitch = Database["public"]["Tables"]["kill_switch"]["Row"];
 export type KillSwitchInsert = Database["public"]["Tables"]["kill_switch"]["Insert"];
 export type KillSwitchUpdate = Database["public"]["Tables"]["kill_switch"]["Update"];
+export type Plan = Database["public"]["Tables"]["plans"]["Row"];
+export type PlanInsert = Database["public"]["Tables"]["plans"]["Insert"];
+export type PlanUpdate = Database["public"]["Tables"]["plans"]["Update"];
+
+export type Subscription = Database["public"]["Tables"]["subscriptions"]["Row"];
+export type SubscriptionInsert = Database["public"]["Tables"]["subscriptions"]["Insert"];
+export type SubscriptionUpdate = Database["public"]["Tables"]["subscriptions"]["Update"];
+
+export type ActionPack = Database["public"]["Tables"]["action_packs"]["Row"];
+export type ActionPackInsert = Database["public"]["Tables"]["action_packs"]["Insert"];
+export type ActionPackUpdate = Database["public"]["Tables"]["action_packs"]["Update"];
+
+export type CreditLedger = Database["public"]["Tables"]["credit_ledger"]["Row"];
+export type CreditLedgerInsert = Database["public"]["Tables"]["credit_ledger"]["Insert"];
+export type CreditLedgerUpdate = Database["public"]["Tables"]["credit_ledger"]["Update"];

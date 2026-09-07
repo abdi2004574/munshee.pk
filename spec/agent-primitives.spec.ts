@@ -183,7 +183,7 @@ test.describe('Agent Primitives (v4 architecture)', () => {
       actor_type: 'system',
       tool_name: 'extract_facts',
       input_summary: 'sourceType=text, text_len=42',
-      result_summary: 'stub: extracted 0 facts, confidence=0',
+      result_summary: 'invoked extract-facts edge function',
       status: 'success',
       autonomy_level: 3,
       estimated_value_pkr: 0,

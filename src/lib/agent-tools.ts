@@ -64,14 +64,15 @@ async function writeLedgerEntry(
 // ============================================================================
 
 export interface ExtractFactsInput {
-  sourceType: "text" | "csv" | "whatsapp_export" | "receipt";
+  sourceType: "text" | "csv" | "whatsapp_export" | "receipt" | "website";
   rawText: string;
+  url?: string;
 }
 
 export interface ExtractFactsOutput {
-  factsExtracted: number;
-  confidence: number;
-  sourceRef: string;
+  facts: unknown[];
+  businessName: string;
+  warning?: string;
 }
 
 export const extractFactsTool: AgentTool<ExtractFactsInput, ExtractFactsOutput> = {
@@ -102,21 +103,39 @@ export const extractFactsTool: AgentTool<ExtractFactsInput, ExtractFactsOutput> 
       throw new Error(`Insufficient autonomy level (${autonomyLevel}) for extract_facts`);
     }
 
-    // Stub implementation — real extraction happens in edge functions via OpenRouter
-    const factsExtracted = 0;
-    const confidence = 0;
+    const body =
+      input.sourceType === "website" && input.url
+        ? { url: input.url }
+        : { rawText: input.rawText, sourceType: input.sourceType };
+
+    const { data, error } = await supabase.functions.invoke("extract-facts", {
+      body,
+    });
+
+    if (error) {
+      await writeLedgerEntry(
+        { businessId, actorType: "system", autonomyLevel },
+        "extract_facts",
+        `sourceType=${input.sourceType}`,
+        `error: ${error.message}`,
+        "failed"
+      );
+      throw new Error(`extract-facts failed: ${error.message}`);
+    }
+
+    const result = data as ExtractFactsOutput;
 
     await writeLedgerEntry(
       { businessId, actorType: "system", autonomyLevel },
       "extract_facts",
-      `sourceType=${input.sourceType}, text_len=${input.rawText.length}`,
-      `stub: extracted ${factsExtracted} facts, confidence=${confidence}`,
+      `sourceType=${input.sourceType}`,
+      `extracted ${result.facts?.length ?? 0} facts, businessName=${result.businessName}`,
       "success",
       0,
       true
     );
 
-    return { factsExtracted, confidence, sourceRef: `extract-${Date.now()}` };
+    return result;
   },
 
   estimateCost(input) {
