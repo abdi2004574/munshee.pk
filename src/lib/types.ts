@@ -258,6 +258,81 @@ export interface Database {
           deleted_at?: string | null;
         };
       };
+
+      action_ledger: {
+        Row: {
+          id: string;
+          business_id: string;
+          actor_type: string;
+          tool_name: string;
+          input_summary: string;
+          result_summary: string;
+          status: string;
+          autonomy_level: number;
+          estimated_value_pkr: number;
+          reversible: boolean;
+          created_at: string;
+        };
+        Insert: {
+          business_id: string;
+          actor_type: string;
+          tool_name: string;
+          input_summary: string;
+          result_summary: string;
+          status: string;
+          autonomy_level?: number;
+          estimated_value_pkr?: number;
+          reversible?: boolean;
+        };
+        Update: {
+          actor_type?: string;
+          tool_name?: string;
+          input_summary?: string;
+          result_summary?: string;
+          status?: string;
+          autonomy_level?: number;
+          estimated_value_pkr?: number;
+          reversible?: boolean;
+        };
+      };
+      autonomy_settings: {
+        Row: {
+          id: string;
+          business_id: string;
+          action_type: string;
+          level: number;
+          auto_approve: boolean;
+          updated_at: string;
+        };
+        Insert: {
+          business_id: string;
+          action_type: string;
+          level?: number;
+          auto_approve?: boolean;
+        };
+        Update: {
+          level?: number;
+          auto_approve?: boolean;
+        };
+      };
+      kill_switch: {
+        Row: {
+          id: string;
+          business_id: string;
+          scope: string;
+          active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          business_id: string;
+          scope: string;
+          active?: boolean;
+        };
+        Update: {
+          scope?: string;
+          active?: boolean;
+        };
+      };
     };
   };
 }
@@ -479,3 +554,16 @@ export type AskLog = Database["public"]["Tables"]["ask_logs"]["Row"];
 export type SocialConnection = Database["public"]["Tables"]["social_connections"]["Row"];
 export type SocialConnectionInsert = Database["public"]["Tables"]["social_connections"]["Insert"];
 export type SocialConnectionUpdate = Database["public"]["Tables"]["social_connections"]["Update"];
+
+
+export type ActionLedger = Database["public"]["Tables"]["action_ledger"]["Row"];
+export type ActionLedgerInsert = Database["public"]["Tables"]["action_ledger"]["Insert"];
+export type ActionLedgerUpdate = Database["public"]["Tables"]["action_ledger"]["Update"];
+
+export type AutonomySettings = Database["public"]["Tables"]["autonomy_settings"]["Row"];
+export type AutonomySettingsInsert = Database["public"]["Tables"]["autonomy_settings"]["Insert"];
+export type AutonomySettingsUpdate = Database["public"]["Tables"]["autonomy_settings"]["Update"];
+
+export type KillSwitch = Database["public"]["Tables"]["kill_switch"]["Row"];
+export type KillSwitchInsert = Database["public"]["Tables"]["kill_switch"]["Insert"];
+export type KillSwitchUpdate = Database["public"]["Tables"]["kill_switch"]["Update"];
