@@ -17,6 +17,7 @@ export async function getPendingPayments(): Promise<PendingPayment[]> {
       created_at: String(row.created_at ?? ""),
       period_end: row.period_end ? String(row.period_end) : null,
       subscription_status: "pending_payment" as const,
+      reference_number: row.reference_number ? String(row.reference_number) : null,
     };
   });
 }

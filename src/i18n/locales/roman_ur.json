@@ -20,21 +20,47 @@
       "name": "Free",
       "price": "Rs 0",
       "description": "Shuru karne ke liye acha",
-      "features": ["50 actions/month", "Munshee.pk watermark", "Text extraction", "1 business", "Basic support"],
+      "features": [
+        "50 actions/month",
+        "Munshee.pk watermark",
+        "Text extraction",
+        "1 business",
+        "Basic support"
+      ],
       "cta": "Muft shuru karein"
     },
     "starter": {
       "name": "Starter",
-      "price": "Rs 5,000",
+      "price": "Rs 4,500",
       "description": "Chhoti shops ke liye",
-      "features": ["600 actions/month", "No watermark", "Text + vision extraction", "Ask Munshee Q&A", "WhatsApp export analysis", "Voice digest", "Reporting & export", "1 business"],
+      "features": [
+        "800 actions/month",
+        "No watermark",
+        "Text + vision extraction",
+        "Ask Munshee Q&A",
+        "WhatsApp export analysis",
+        "Voice digest",
+        "Reporting & export",
+        "1 business"
+      ],
       "cta": "Plan chunein"
     },
     "business": {
       "name": "Business",
-      "price": "Rs 9,000",
+      "price": "Rs 8,500",
       "description": "Experts ke liye jo multiple clients manage karte hain",
-      "features": ["2500 actions/month", "No watermark", "All extraction types", "Client context switcher", "Ask Munshee Q&A", "WhatsApp export analysis", "Voice digest", "Reporting & export", "Up to 6 businesses", "Directory eligible"],
+      "features": [
+        "2000 actions/month",
+        "No watermark",
+        "All extraction types",
+        "Client context switcher",
+        "Ask Munshee Q&A",
+        "WhatsApp export analysis",
+        "Voice digest",
+        "Reporting & export",
+        "Up to 6 businesses",
+        "Directory eligible"
+      ],
       "cta": "Plan chunein"
     },
     "popular": "Sab se popular",
@@ -48,13 +74,35 @@
     "feature.reporting": "Reporting & export",
     "feature.directory": "Public directory listing",
     "actions.free": "50 actions/month",
-    "actions.starter": "600 actions/month",
-    "actions.business": "2500 actions/month",
+    "actions.starter": "800 actions/month",
+    "actions.business": "2000 actions/month",
     "businesses.free": "1 business",
     "businesses.starter": "1 business",
     "businesses.business": "Up to 6 businesses",
     "footer.expert": "Experts ke liye: Business plan mein client management shamil hai",
-    "currency.pkr": "PKR"
+    "currency.pkr": "PKR",
+    "os": {
+      "name": "OS",
+      "price": "Rs 19,000",
+      "description": "Full AI Business Manager",
+      "features": [
+        "5000 actions/month",
+        "No watermark",
+        "All extraction types",
+        "Client context switcher",
+        "Ask Munshee Q&A",
+        "WhatsApp export analysis",
+        "Voice digest",
+        "Reporting & export",
+        "Up to 10 businesses",
+        "Directory eligible",
+        "Tax ready",
+        "Full ROI ledger"
+      ],
+      "cta": "Plan chunein"
+    },
+    "actions.os": "5000 actions/month",
+    "businesses.os": "Up to 10 businesses"
   },
   "billing": {
     "title": "Billing & Plans",
@@ -87,7 +135,8 @@
     "per_month": "/month",
     "validity_days": "din valid",
     "no_credits": "Abhi tak koi credit nahi",
-    "expires": "Expires"
+    "expires": "Expires",
+    "reference_number_display": "Reference number"
   },
   "admin": {
     "title": "Admin Dashboard",
@@ -153,7 +202,7 @@
     "actions_exhausted_modal": {
       "title": "Actions khatam ho gaye!",
       "message": "Aapke mahine ke Actions khatam ho gaye - agle month dobara milenge, ya Business plan lein.",
-      "celebration_title": "Aapne 150 Actions mein zabardast kaam kiya 🎉",
+      "celebration_title": "Aapne {n} Actions mein zabardast kaam kiya 🎉",
       "celebration_message": "100 ka Pack Rs 800 load karein YA Starter lein (800 Actions + weekly re-scan, Rs 4,500).",
       "cta": "Business plan lein",
       "close": "Band karein"

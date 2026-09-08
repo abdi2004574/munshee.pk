@@ -3,11 +3,13 @@
 interface CardProps {
   children: ReactNode;
   className?: string;
+  id?: string;
 }
 
-export function Card({ children, className = "" }: CardProps) {
+export function Card({ children, className = "", id }: CardProps) {
   return (
     <div
+      id={id}
       className={`rounded-xl border border-gray-100 bg-surface shadow-sm ${className}`}
     >
       {children}

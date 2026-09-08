@@ -1,4 +1,4 @@
-ï»¿// Supabase Edge Function: extract-facts
+// Supabase Edge Function: extract-facts
 // Runtime: Deno
 // Purpose: Extract structured business facts from a merchant-supplied website URL
 //          by fetching the page, building an LLM context, and calling OpenRouter
@@ -13,7 +13,7 @@ const OPENROUTER_MODEL = "meta-llama/llama-3.3-70b";
 const SYSTEM_PROMPT = `You extract structured business facts from raw website text of small Pakistani businesses. Output ONLY valid JSON:
 {"businessName":"...","facts":[{"category":"...","label":"...","value":"...","confidence":0.0,"quote":"..."}]}
 Categories: identity, contact, timings, delivery, payment, policy, product, faq.
-NEVER invent facts. Uncertain â†’ confidence <0.5. Products include PKR prices as written. Handle Urdu and Roman Urdu natively. Max 25 facts.
+NEVER invent facts. Uncertain ? confidence <0.5. Products include PKR prices as written. Handle Urdu and Roman Urdu natively. Max 25 facts.
 quote = max 12 words copied verbatim from source text.`;
 
 const corsHeaders = {
@@ -97,7 +97,7 @@ async function enforceAction(
       body: {
         code: "ACTIONS_EXHAUSTED",
         error: "actions_exhausted",
-        message: "Aapke mahine ke Actions khatam ho gaye â€” agle month dobara milenge, ya Business plan lein.",
+        message: "Aapke mahine ke Actions khatam ho gaye — agle month dobara milenge, ya Business plan lein.",
         actionsLeft: result?.actions_left ?? 0,
         subscriptionStatus: result?.subscription_status ?? "unknown",
       },
@@ -226,7 +226,7 @@ Deno.serve(async (req: Request) => {
   ) {
     return jsonResponse(400, {
       error: "social_blocked",
-      message: "Facebook aur Instagram ke links abhi support nahi hain â€” photo upload ya website URL try karein.",
+      message: "Facebook aur Instagram ke links abhi support nahi hain — photo upload ya website URL try karein.",
     });
   }
 
@@ -269,11 +269,11 @@ Deno.serve(async (req: Request) => {
     }
   } catch (err) {
     console.error("Fetch error:", err);
-    return jsonResponse(502, { error: "Failed to fetch the provided URL" });
+    return jsonResponse(502, { error: "Website tak nahi pohanch sake — dobara koshish karein?" });
   }
 
   if (!html || textLen === 0) {
-    return jsonResponse(502, { error: "Failed to retrieve content from the provided URL" });
+    return jsonResponse(502, { error: "Website se kuch nahi mila — photos se try karein" });
   }
 
   const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
@@ -325,18 +325,18 @@ Deno.serve(async (req: Request) => {
     if (!openRouterResp.ok) {
       const errText = await openRouterResp.text().catch(() => "");
       console.error(`OpenRouter non-200 (${openRouterResp.status}):`, errText.slice(0, 500));
-      return jsonResponse(502, { error: "OpenRouter request failed" });
+      return jsonResponse(502, { error: "AI se data receive karne mein problem hui — dobara koshish karein" });
     }
 
     completion = await openRouterResp.json();
   } catch (err) {
     console.error("OpenRouter fetch failed:", err);
-    return jsonResponse(500, { error: "Failed to reach OpenRouter" });
+    return jsonResponse(500, { error: "AI se connect nahi ho pa raha — thodi der baad try karein" });
   }
 
   const content = completion?.choices?.[0]?.message?.content;
   if (typeof content !== "string" || content.trim() === "") {
-    return jsonResponse(502, { error: "Invalid response from AI model" });
+    return jsonResponse(502, { error: "AI se data process karne mein problem hui — dobara koshish karein" });
   }
 
   let parsed: unknown;
@@ -344,11 +344,11 @@ Deno.serve(async (req: Request) => {
     parsed = extractJson(content);
   } catch (err) {
     console.error("JSON parse failed:", err, "raw:", content.slice(0, 500));
-    return jsonResponse(502, { error: "Invalid response from AI model" });
+    return jsonResponse(502, { error: "AI se data process karne mein problem hui — dobara koshish karein" });
   }
 
   if (!parsed || typeof parsed !== "object") {
-    return jsonResponse(502, { error: "Invalid response from AI model" });
+    return jsonResponse(502, { error: "AI se data process karne mein problem hui — dobara koshish karein" });
   }
 
   const root = parsed as Record<string, unknown>;
@@ -365,7 +365,7 @@ Deno.serve(async (req: Request) => {
 
   if (validFacts.length === 0) {
     facts = [];
-    warning = "Website se kuch nahi mila â€” photos se try karein";
+    warning = "Website se kuch nahi mila — photos se try karein";
   } else {
     facts = validFacts;
   }
@@ -390,7 +390,7 @@ Deno.serve(async (req: Request) => {
 
     if (factsError) {
       console.error("Failed to insert business_facts:", factsError);
-      return jsonResponse(500, { error: "Failed to persist facts" });
+      return jsonResponse(500, { error: "Facts save karne mein problem hui — dobara koshish karein" });
     }
   }
 

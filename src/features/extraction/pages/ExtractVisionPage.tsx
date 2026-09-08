@@ -1,24 +1,16 @@
-﻿import { useState, useEffect, type ChangeEvent } from "react";
+import { useState, useEffect, type ChangeEvent } from "react";
 import { useNavigate } from "react-router";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { Badge } from "@/components/Badge";
-import { Money } from "@/components/Money";
 import { useExtractVision } from "../hooks";
 import { useCreateBusinessFacts } from "@/features/facts/hooks";
 import { useCreateAuditLog } from "@/features/audit/hooks";
 import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
 import type { BusinessFactInsert } from "@/features/facts/api";
-import type { ExtractedProduct, ExtractedVariant } from "../api";
-
-const TRUNCATE_DESCRIPTION = 220;
-
-function truncate(text: string, max: number): string {
-  if (text.length <= max) return text;
-  return `${text.slice(0, max).trimEnd()}…`;
-}
+import type { Fact } from "../api";
 
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -35,16 +27,16 @@ function stripDataUrlPrefix(dataUrl: string): string {
   return dataUrl.slice(commaIdx + 1);
 }
 
-interface ProductsResultProps {
-  products: ExtractedProduct[];
+interface FactsResultProps {
+  facts: Fact[];
 }
 
-function ProductsResult({ products }: ProductsResultProps) {
-  if (products.length === 0) {
+function FactsResult({ facts }: FactsResultProps) {
+  if (facts.length === 0) {
     return (
       <Card className="p-6">
         <p className="text-sm text-ink-muted">
-          The extraction completed but no products were found in the response.
+          The extraction completed but no facts were found in the response.
         </p>
       </Card>
     );
@@ -52,69 +44,25 @@ function ProductsResult({ products }: ProductsResultProps) {
 
   return (
     <div className="space-y-3">
-      {products.map((product, idx) => (
-        <Card key={`${product.sku.value ?? product.name.value}-${idx}`} className="p-4">
+      {facts.map((fact, idx) => (
+        <Card key={`${fact.category}-${fact.label}-${idx}`} className="p-4">
           <div className="space-y-2">
             <div className="flex items-start justify-between gap-3">
-              <h3 className="text-base font-semibold text-ink">{product.name.value}</h3>
-              {product.sku.value && (
-                <Badge variant="info">SKU: {product.sku.value}</Badge>
-              )}
+              <h3 className="text-base font-semibold text-ink">{fact.label}</h3>
+              <div className="flex items-center gap-2">
+                <Badge variant="info">{fact.category}</Badge>
+                <span className="text-xs text-ink-muted">
+                  {Math.round(fact.confidence * 100)}%
+                </span>
+              </div>
             </div>
 
-            <div className="flex flex-wrap gap-2 text-xs text-ink-muted">
-              {product.category.value && (
-                <span>
-                  <span className="font-medium text-ink">Category:</span>{" "}
-                  {product.category.value}
-                </span>
-              )}
-              {product.brand.value && (
-                <span>
-                  <span className="font-medium text-ink">Brand:</span>{" "}
-                  {product.brand.value}
-                </span>
-              )}
-            </div>
+            <p className="text-sm text-ink">{fact.value}</p>
 
-            {product.description.value && (
-              <p className="text-sm text-ink-muted">
-                {truncate(product.description.value, TRUNCATE_DESCRIPTION)}
+            {fact.quote && (
+              <p className="text-xs text-ink-muted italic border-l-2 border-gray-200 pl-2">
+                "{fact.quote}"
               </p>
-            )}
-
-            {product.variants && product.variants.length > 0 && (
-              <div className="mt-2 space-y-1 border-t border-gray-100 pt-2">
-                <p className="text-xs font-medium text-ink-muted">Variants</p>
-                <ul className="space-y-1">
-                  {product.variants.map((variant: ExtractedVariant, vIdx) => (
-                    <li
-                      key={`${variant.sku.value ?? variant.name.value ?? "variant"}-${vIdx}`}
-                      className="flex items-center justify-between text-sm"
-                    >
-                      <span className="text-ink">
-                        {variant.name.value ?? variant.sku.value ?? `Variant ${vIdx + 1}`}
-                      </span>
-                      {variant.price.value != null && (
-                        <Money
-                          value={variant.price.value}
-                          currency="PKR"
-                        />
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {product.tags.value && product.tags.value.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {product.tags.value.map((tag) => (
-                  <Badge key={tag} variant="default">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
             )}
           </div>
         </Card>
@@ -123,90 +71,23 @@ function ProductsResult({ products }: ProductsResultProps) {
   );
 }
 
-type ProductFieldKey =
-  | "name"
-  | "sku"
-  | "description"
-  | "category"
-  | "brand"
-  | "status"
-  | "tags"
-  | "weight_grams";
-
-const PRODUCT_FIELD_KEYS: ProductFieldKey[] = [
-  "name",
-  "sku",
-  "description",
-  "category",
-  "brand",
-  "status",
-  "tags",
-  "weight_grams",
-];
-
-const VARIANT_PRICING_FIELDS = ["price", "compare_at_price", "cost_price"] as const;
-const VARIANT_PRODUCT_FIELDS = ["sku", "name", "barcode", "options", "status"] as const;
-
-function buildFacts(
-  products: ExtractedProduct[],
+function buildFactRows(
+  facts: Fact[],
   tenantId: string,
-  sourceRef: string,
+  sourceType: string,
 ): BusinessFactInsert[] {
-  const facts: BusinessFactInsert[] = [];
-
-  for (const product of products) {
-    for (const key of PRODUCT_FIELD_KEYS) {
-      const field = product[key];
-      facts.push({
-        tenant_id: tenantId,
-        category: "product",
-        label: key,
-        value: String(field.value),
-        confidence: field.confidence,
-        source_ref: sourceRef,
-        source_type: "vision_extraction",
-        linked_table: "products",
-        linked_row_id: null,
-        status: "needs_review",
-      });
-    }
-
-    for (const variant of product.variants ?? []) {
-      for (const key of VARIANT_PRICING_FIELDS) {
-        const field = variant[key];
-        facts.push({
-          tenant_id: tenantId,
-          category: "pricing",
-          label: key,
-          value: String(field.value),
-          confidence: field.confidence,
-          source_ref: sourceRef,
-          source_type: "vision_extraction",
-          linked_table: "product_variants",
-          linked_row_id: null,
-          status: "needs_review",
-        });
-      }
-
-      for (const key of VARIANT_PRODUCT_FIELDS) {
-        const field = variant[key];
-        facts.push({
-          tenant_id: tenantId,
-          category: "product",
-          label: key,
-          value: String(field.value),
-          confidence: field.confidence,
-          source_ref: sourceRef,
-          source_type: "vision_extraction",
-          linked_table: "product_variants",
-          linked_row_id: null,
-          status: "needs_review",
-        });
-      }
-    }
-  }
-
-  return facts;
+  return facts.map((fact) => ({
+    tenant_id: tenantId,
+    category: fact.category,
+    label: fact.label,
+    value: fact.value,
+    confidence: fact.confidence,
+    status: "needs_review",
+    source_type: sourceType,
+    source_ref: fact.quote,
+    linked_table: null,
+    linked_row_id: null,
+  }));
 }
 
 export function ExtractVisionPage() {
@@ -223,12 +104,12 @@ export function ExtractVisionPage() {
   const [saving, setSaving] = useState(false);
 
   const result = extract.data;
-  const products = result?.products ?? [];
+  const facts = result?.facts ?? [];
 
   const previewUrl = fileDataUrl ?? (imageUrl.trim() || "");
   const hasInput = Boolean(fileDataUrl) || imageUrl.trim().length > 0;
   const canExtract = hasInput && !extract.isPending;
-  const canSave = products.length > 0 && !saving;
+  const canSave = facts.length > 0 && !saving;
 
   useEffect(() => {
     if (extract.isError) {
@@ -276,18 +157,14 @@ export function ExtractVisionPage() {
   }
 
   async function onSaveToQueue() {
-    if (!result || products.length === 0) return;
+    if (!result || facts.length === 0) return;
     setSaving(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const tenantId = sessionData.session?.user.id;
       if (!tenantId) throw new Error("Not authenticated");
 
-      const sourceRef = fileName
-        ? `image:${fileName}`
-        : imageUrl.trim() || "";
-
-      const factsArray = buildFacts(products, tenantId, sourceRef);
+      const factsArray = buildFactRows(facts, tenantId, "photo_ocr");
 
       await createBusinessFacts.mutateAsync(factsArray);
 
@@ -297,7 +174,7 @@ export function ExtractVisionPage() {
         actor: tenantId,
         action: "import",
         old_value: null,
-        new_value: { source_type: "vision_extraction", facts_count: factsArray.length },
+        new_value: { source_type: "photo_ocr", facts_count: factsArray.length },
       });
 
       navigate(`/apps/review`);
@@ -316,7 +193,7 @@ export function ExtractVisionPage() {
         <h1 className="text-2xl font-semibold text-ink">Extract from image</h1>
         <p className="text-sm text-ink-muted">
           Upload an image or paste an image URL. The AI will extract structured
-          product data for you to review.
+          business facts for you to review.
         </p>
       </div>
 
@@ -384,7 +261,7 @@ export function ExtractVisionPage() {
 
       {extract.isPending && (
         <Card className="p-6">
-          <p className="text-sm text-ink-muted">Extracting products…</p>
+          <p className="text-sm text-ink-muted">Extracting facts…</p>
         </Card>
       )}
 
@@ -392,11 +269,11 @@ export function ExtractVisionPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-medium text-ink">
-              Extracted products ({products.length})
+              Extracted facts ({facts.length})
             </h2>
           </div>
 
-          <ProductsResult products={products} />
+          <FactsResult facts={facts} />
 
           <div className="flex justify-end">
             <Button onClick={onSaveToQueue} disabled={!canSave}>

@@ -110,6 +110,7 @@ export function AdminPage() {
                   <th className="pb-2 font-medium">{t("admin.business_id")}</th>
                   <th className="pb-2 font-medium">{t("admin.status")}</th>
                   <th className="pb-2 font-medium">{t("admin.created_at")}</th>
+                  <th className="pb-2 font-medium">Reference</th>
                   <th className="pb-2 font-medium">Action</th>
                 </tr>
               </thead>
@@ -128,6 +129,9 @@ export function AdminPage() {
                       </Badge>
                     </td>
                     <td className="py-3 text-ink-muted">{formatDate(payment.created_at)}</td>
+                    <td className="py-3 font-mono text-xs text-ink-muted">
+                      {payment.reference_number || "—"}
+                    </td>
                     <td className="py-3">
                       {payment.plan_id.startsWith("pack_") ? (
                         activatingId === payment.id ? (

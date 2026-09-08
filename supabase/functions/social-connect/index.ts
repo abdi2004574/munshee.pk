@@ -1,4 +1,4 @@
-// Supabase Edge Function: social-connect
+﻿// Supabase Edge Function: social-connect
 // Runtime: Deno
 // Purpose: Facebook / Instagram OAuth "one-tap connect" for munshee.pk.
 //   POST  -> initiate: validate JWT, return Meta OAuth dialog URL.
@@ -23,33 +23,12 @@ const corsHeaders = {
 const GRAPH_VERSION = "v18.0";
 const GRAPH_BASE = `https://graph.facebook.com/${GRAPH_VERSION}`;
 
-type FieldValue = {
-  value: unknown;
-  confidence: unknown;
-  source_quote: unknown;
-};
-
-type ExtractedVariant = {
-  sku: FieldValue;
-  name: FieldValue;
-  price: FieldValue;
-  compare_at_price: FieldValue;
-  cost_price: FieldValue;
-  barcode: FieldValue;
-  options: FieldValue;
-  status: FieldValue;
-};
-
-type ExtractedProduct = {
-  name: FieldValue;
-  sku: FieldValue;
-  description: FieldValue;
-  category: FieldValue;
-  brand: FieldValue;
-  status: FieldValue;
-  tags: FieldValue;
-  weight_grams: FieldValue;
-  variants: ExtractedVariant[];
+type Fact = {
+  category: string;
+  label: string;
+  value: string;
+  confidence: number;
+  quote: string;
 };
 
 type BusinessFactInsert = {
@@ -80,85 +59,6 @@ function redirect(location: string) {
       Location: location,
     },
   });
-}
-
-// Mirror of the buildFacts() pattern from
-// src/features/extraction/pages/ExtractTextPage.tsx, generalised over
-// source_type so it can serve both providers.
-function buildFacts(
-  products: ExtractedProduct[],
-  tenantId: string,
-  sourceType: string,
-): BusinessFactInsert[] {
-  const facts: BusinessFactInsert[] = [];
-
-  const PRODUCT_FIELD_KEYS = [
-    "name",
-    "sku",
-    "description",
-    "category",
-    "brand",
-    "status",
-    "tags",
-    "weight_grams",
-  ] as const;
-
-  const VARIANT_PRICING_FIELDS = ["price", "compare_at_price", "cost_price"] as const;
-  const VARIANT_PRODUCT_FIELDS = ["sku", "name", "barcode", "options", "status"] as const;
-
-  for (const product of products) {
-    for (const key of PRODUCT_FIELD_KEYS) {
-      const field = (product as Record<string, FieldValue>)[key];
-      facts.push({
-        tenant_id: tenantId,
-        category: "product",
-        label: key,
-        value: String(field.value),
-        confidence: typeof field.confidence === "number" ? field.confidence : null,
-        source_ref: typeof field.source_quote === "string" ? field.source_quote : null,
-        source_type: sourceType,
-        linked_table: "products",
-        linked_row_id: null,
-        status: "needs_review",
-      });
-    }
-
-    for (const variant of product.variants ?? []) {
-      for (const key of VARIANT_PRICING_FIELDS) {
-        const field = (variant as Record<string, FieldValue>)[key];
-        facts.push({
-          tenant_id: tenantId,
-          category: "pricing",
-          label: key,
-          value: String(field.value),
-          confidence: typeof field.confidence === "number" ? field.confidence : null,
-          source_ref: typeof field.source_quote === "string" ? field.source_quote : null,
-          source_type: sourceType,
-          linked_table: "product_variants",
-          linked_row_id: null,
-          status: "needs_review",
-        });
-      }
-
-      for (const key of VARIANT_PRODUCT_FIELDS) {
-        const field = (variant as Record<string, FieldValue>)[key];
-        facts.push({
-          tenant_id: tenantId,
-          category: "product",
-          label: key,
-          value: String(field.value),
-          confidence: typeof field.confidence === "number" ? field.confidence : null,
-          source_ref: typeof field.source_quote === "string" ? field.source_quote : null,
-          source_type: sourceType,
-          linked_table: "product_variants",
-          linked_row_id: null,
-          status: "needs_review",
-        });
-      }
-    }
-  }
-
-  return facts;
 }
 
 // Opaque base64 state token carrying tenant_id + provider through the OAuth dance.
@@ -226,35 +126,35 @@ async function invokeFunction(
   return (await resp.json()) as Record<string, unknown>;
 }
 
-function productsFromPayload(payload: Record<string, unknown>): ExtractedProduct[] {
-  const nested = payload.data as { products?: unknown } | undefined;
-  const products = nested?.products ?? (payload.products as unknown[] | undefined);
-  return (Array.isArray(products) ? products : []) as ExtractedProduct[];
+function factsFromPayload(payload: Record<string, unknown>): Fact[] {
+  const nested = payload.data as { facts?: unknown } | undefined;
+  const facts = nested?.facts ?? (payload.facts as unknown[] | undefined);
+  return (Array.isArray(facts) ? facts : []) as Fact[];
 }
 
-async function extractProductsFromText(
+async function extractFactsFromText(
   supabaseUrl: string,
   serviceRoleKey: string,
   text: string,
-): Promise<ExtractedProduct[]> {
+): Promise<Fact[]> {
   const payload = await invokeFunction(supabaseUrl, serviceRoleKey, "extract-text", {
     text,
   });
-  return productsFromPayload(payload);
+  return factsFromPayload(payload);
 }
 
-async function extractProductsFromImage(
+async function extractFactsFromImage(
   supabaseUrl: string,
   serviceRoleKey: string,
   imageUrl: string,
-): Promise<ExtractedProduct[]> {
+): Promise<Fact[]> {
   const payload = await invokeFunction(
     supabaseUrl,
     serviceRoleKey,
     "extract-vision",
     { image_url: imageUrl },
   );
-  return productsFromPayload(payload);
+  return factsFromPayload(payload);
 }
 
 Deno.serve(async (req: Request) => {
@@ -469,14 +369,14 @@ Deno.serve(async (req: Request) => {
         }
       }
 
-      // 5. Run extract-text on the aggregated content, and extract-vision on
-      //    every image URL. Merge results, then build facts.
-      let allProducts: ExtractedProduct[] = [];
+            // 5. Run extract-text on the aggregated content, and extract-vision on
+      //    every image URL. Merge results, then persist facts.
+      let allFacts: Fact[] = [];
 
       if (textBlock.trim()) {
         try {
-          allProducts = allProducts.concat(
-            await extractProductsFromText(supabaseUrl, serviceRoleKey, textBlock),
+          allFacts = allFacts.concat(
+            await extractFactsFromText(supabaseUrl, serviceRoleKey, textBlock),
           );
         } catch (extractErr) {
           console.error("extract-text failed:", extractErr);
@@ -485,26 +385,37 @@ Deno.serve(async (req: Request) => {
 
       for (const img of imageUrls) {
         try {
-          allProducts = allProducts.concat(
-            await extractProductsFromImage(supabaseUrl, serviceRoleKey, img),
+          allFacts = allFacts.concat(
+            await extractFactsFromImage(supabaseUrl, serviceRoleKey, img),
           );
         } catch (visionErr) {
           console.error("extract-vision failed:", visionErr);
         }
       }
 
-      // 6. Build + persist business facts.
-      const facts = buildFacts(allProducts, tenant_id, sourceType);
+      // 6. Persist business facts.
+      const factRows = allFacts.map((fact) => ({
+        tenant_id: tenant_id,
+        category: fact.category,
+        label: fact.label,
+        value: fact.value,
+        confidence: fact.confidence,
+        status: "needs_review",
+        source_type: sourceType,
+        source_ref: fact.quote,
+        linked_table: null,
+        linked_row_id: null,
+      }));
       let factCount = 0;
 
-      if (facts.length > 0) {
+      if (factRows.length > 0) {
         const { error: factsError } = await supabase
           .from("business_facts")
-          .insert(facts);
+          .insert(factRows);
         if (factsError) {
           throw new Error(`Failed to insert facts: ${factsError.message}`);
         }
-        factCount = facts.length;
+        factCount = factRows.length;
       }
 
       // 7. Log to audit_log.
@@ -606,3 +517,9 @@ Deno.serve(async (req: Request) => {
   // Anything else
   return jsonResponse(405, { error: "Method not allowed" });
 });
+
+
+
+
+
+

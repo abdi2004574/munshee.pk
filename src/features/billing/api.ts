@@ -20,6 +20,7 @@ export interface Subscription {
   admin_granted: boolean;
   actions_remaining: number;
   last_grant_at: string | null;
+  reference_number: string;
   created_at: string;
   updated_at: string;
 }
@@ -78,12 +79,13 @@ export async function getCurrentSubscription(businessId: string): Promise<Subscr
     admin_granted: Boolean(row.admin_granted),
     actions_remaining: Number(row.actions_remaining ?? 0),
     last_grant_at: row.last_grant_at ? String(row.last_grant_at) : null,
+    reference_number: row.reference_number ? String(row.reference_number) : "",
     created_at: String(row.created_at),
     updated_at: String(row.updated_at),
   };
 }
 
-export async function createPendingSubscription(businessId: string, planId: string, _referenceNumber: string): Promise<Subscription> {
+export async function createPendingSubscription(businessId: string, planId: string, referenceNumber: string): Promise<Subscription> {
   const { data, error } = await supabase
     .from("subscriptions" as never)
     .upsert(
@@ -96,6 +98,7 @@ export async function createPendingSubscription(businessId: string, planId: stri
         admin_granted: false,
         actions_remaining: 0,
         last_grant_at: null,
+        reference_number: referenceNumber,
       } as never,
       { onConflict: "business_id" }
     )
@@ -113,6 +116,7 @@ export async function createPendingSubscription(businessId: string, planId: stri
     admin_granted: false,
     actions_remaining: 0,
     last_grant_at: null,
+    reference_number: referenceNumber,
     created_at: String(row.created_at),
     updated_at: String(row.updated_at),
   };
@@ -144,6 +148,7 @@ export async function getCurrentPlanData(businessId: string): Promise<{ plan: Pl
           admin_granted: Boolean(row.admin_granted),
           actions_remaining: Number(row.actions_left ?? 0),
           last_grant_at: null,
+          reference_number: row.reference_number ? String(row.reference_number) : "",
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         }

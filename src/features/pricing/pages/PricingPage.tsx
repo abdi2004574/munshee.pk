@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+﻿import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
@@ -31,22 +31,34 @@ export function PricingPage() {
         </div>
 
         {isLoading ? (
-          <div className="mt-12 text-center text-ink-muted">Loading�</div>
+          <div className="mt-12 text-center text-ink-muted">Loading…</div>
         ) : (
-          <div className="mt-12 grid gap-6 md:grid-cols-3">
+          <div className="mt-12 grid gap-6 md:grid-cols-4">
             {plans.map((plan) => {
               const isPopular = plan.id === "starter";
+              const isOs = plan.id === "os";
               return (
                 <Card
                   key={plan.id}
                   className={`relative flex flex-col rounded-lg border bg-white p-6 ${
-                    isPopular ? "border-2 border-brand-400" : "border border-gray-200"
+                    isOs
+                      ? "border-2 border-brand-500 shadow-lg"
+                      : isPopular
+                        ? "border-2 border-brand-400"
+                        : "border border-gray-200"
                   }`}
                 >
                   {isPopular && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                       <Badge variant="warning" className="bg-amber-100 text-amber-800">
                         {t("pricing.popular")}
+                      </Badge>
+                    </div>
+                  )}
+                  {isOs && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                      <Badge variant="info" className="bg-brand-100 text-brand-800">
+                        Full AI Business Manager
                       </Badge>
                     </div>
                   )}
@@ -104,6 +116,36 @@ export function PricingPage() {
                       <li className="flex items-start gap-2">
                         <Icon name="check" size={16} className="mt-0.5 text-amber-500" />
                         <span className="text-ink-muted">{t("pricing.feature.watermark")}</span>
+                      </li>
+                    )}
+                    {plan.features.tax_ready && (
+                      <li className="flex items-start gap-2">
+                        <Icon name="check" size={16} className="mt-0.5 text-brand-500" />
+                        <span>Tax ready</span>
+                      </li>
+                    )}
+                    {plan.features.udhaar_full && (
+                      <li className="flex items-start gap-2">
+                        <Icon name="check" size={16} className="mt-0.5 text-brand-500" />
+                        <span>Full udhaar</span>
+                      </li>
+                    )}
+                    {plan.features.invoices_unlimited && (
+                      <li className="flex items-start gap-2">
+                        <Icon name="check" size={16} className="mt-0.5 text-brand-500" />
+                        <span>Unlimited invoices</span>
+                      </li>
+                    )}
+                    {(plan.features.roi_ledger as string | boolean) === "full" && (
+                      <li className="flex items-start gap-2">
+                        <Icon name="check" size={16} className="mt-0.5 text-brand-500" />
+                        <span>Full ROI ledger</span>
+                      </li>
+                    )}
+                    {(plan.features.rescans as string | boolean) === "daily_instant" && (
+                      <li className="flex items-start gap-2">
+                        <Icon name="check" size={16} className="mt-0.5 text-brand-500" />
+                        <span>Daily instant rescan</span>
                       </li>
                     )}
                     <li className="flex items-start gap-2">

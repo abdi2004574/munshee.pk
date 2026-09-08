@@ -1,105 +1,64 @@
-ï»¿import { useState, useEffect, type ChangeEvent } from "react";
+import { useState, useEffect, type ChangeEvent } from "react";
 import { useNavigate } from "react-router";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { Textarea } from "@/components/Textarea";
 import { Badge } from "@/components/Badge";
-import { Money } from "@/components/Money";
 import { useExtractText } from "../hooks";
 import { useCreateBusinessFacts } from "@/features/facts/hooks";
 import { useCreateAuditLog } from "@/features/audit/hooks";
 import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
 import type { BusinessFactInsert } from "@/features/facts/api";
-import type { ExtractedProduct, ExtractedVariant } from "../api";
+import type { Fact } from "../api";
 import { extractTextSchema, validateForm } from "@/lib/validation";
 
-const TRUNCATE_DESCRIPTION = 220;
-
-function truncate(text: string, max: number): string {
-  if (text.length <= max) return text;
-  return `${text.slice(0, max).trimEnd()}â€¦`;
+interface FactsResultProps {
+  facts: Fact[];
 }
 
-interface ProductsResultProps {
-  products: ExtractedProduct[];
-}
-
-function ProductsResult({ products }: ProductsResultProps) {
-  if (products.length === 0) {
+function FactsResult({ facts }: FactsResultProps) {
+  if (facts.length === 0) {
     return (
       <Card className="p-6">
         <p className="text-sm text-ink-muted">
-          The extraction completed but no products were found in the response.
+          The extraction completed but no facts were found in the response.
         </p>
       </Card>
     );
   }
 
+  const grouped = facts.reduce<Record<string, Fact[]>>((acc, fact) => {
+    if (!acc[fact.category]) acc[fact.category] = [];
+    acc[fact.category].push(fact);
+    return acc;
+  }, {});
+
   return (
-    <div className="space-y-3">
-      {products.map((product, idx) => (
-        <Card key={`${product.sku.value ?? product.name.value}-${idx}`} className="p-4">
-          <div className="space-y-2">
-            <div className="flex items-start justify-between gap-3">
-              <h3 className="text-base font-semibold text-ink">{product.name.value}</h3>
-              {product.sku.value && (
-                <Badge variant="info">SKU: {product.sku.value}</Badge>
-              )}
-            </div>
-
-            <div className="flex flex-wrap gap-2 text-xs text-ink-muted">
-              {product.category.value && (
-                <span>
-                  <span className="font-medium text-ink">Category:</span>{" "}
-                  {product.category.value}
-                </span>
-              )}
-              {product.brand.value && (
-                <span>
-                  <span className="font-medium text-ink">Brand:</span>{" "}
-                  {product.brand.value}
-                </span>
-              )}
-            </div>
-
-            {product.description.value && (
-              <p className="text-sm text-ink-muted">
-                {truncate(product.description.value, TRUNCATE_DESCRIPTION)}
-              </p>
-            )}
-
-            {product.variants && product.variants.length > 0 && (
-              <div className="mt-2 space-y-1 border-t border-gray-100 pt-2">
-                <p className="text-xs font-medium text-ink-muted">Variants</p>
-                <ul className="space-y-1">
-                  {product.variants.map((variant: ExtractedVariant, vIdx) => (
-                    <li
-                      key={`${variant.sku.value ?? variant.name.value ?? "variant"}-${vIdx}`}
-                      className="flex items-center justify-between text-sm"
-                    >
-                      <span className="text-ink">
-                        {variant.name.value ?? variant.sku.value ?? `Variant ${vIdx + 1}`}
-                      </span>
-                      {variant.price.value != null && (
-                        <Money value={variant.price.value} currency="PKR" />
-                      )}
-                    </li>
-                  ))}
-                </ul>
+    <div className="space-y-4">
+      {Object.entries(grouped).map(([category, categoryFacts]) => (
+        <Card key={category} className="p-4">
+          <h3 className="text-sm font-medium text-ink mb-3 capitalize">{category}</h3>
+          <div className="space-y-3">
+            {categoryFacts.map((fact, idx) => (
+              <div
+                key={`${fact.label}-${idx}`}
+                className="space-y-1 border-b border-gray-100 last:border-b-0 pb-3 last:pb-0"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-ink">{fact.label}</span>
+                  <Badge variant="default" className="capitalize">{fact.category}</Badge>
+                </div>
+                <p className="text-sm text-ink-muted">{fact.value}</p>
+                <div className="flex items-center gap-3 text-xs text-ink-muted">
+                  <span>Confidence: {Math.round(fact.confidence)}%</span>
+                </div>
+                {fact.quote && (
+                  <p className="text-xs text-ink-muted italic">"{fact.quote}"</p>
+                )}
               </div>
-            )}
-
-            {product.tags.value && product.tags.value.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {product.tags.value.map((tag) => (
-                  <Badge key={tag} variant="default">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-            )}
+            ))}
           </div>
         </Card>
       ))}
@@ -107,89 +66,23 @@ function ProductsResult({ products }: ProductsResultProps) {
   );
 }
 
-type ProductFieldKey =
-  | "name"
-  | "sku"
-  | "description"
-  | "category"
-  | "brand"
-  | "status"
-  | "tags"
-  | "weight_grams";
-
-const PRODUCT_FIELD_KEYS: ProductFieldKey[] = [
-  "name",
-  "sku",
-  "description",
-  "category",
-  "brand",
-  "status",
-  "tags",
-  "weight_grams",
-];
-
-const VARIANT_PRICING_FIELDS = ["price", "compare_at_price", "cost_price"] as const;
-const VARIANT_PRODUCT_FIELDS = ["sku", "name", "barcode", "options", "status"] as const;
-
-function buildFacts(
-  products: ExtractedProduct[],
+function buildFactRows(
+  facts: Fact[],
   tenantId: string,
+  sourceType: string,
 ): BusinessFactInsert[] {
-  const facts: BusinessFactInsert[] = [];
-
-  for (const product of products) {
-    for (const key of PRODUCT_FIELD_KEYS) {
-      const field = product[key];
-      facts.push({
-        tenant_id: tenantId,
-        category: "product",
-        label: key,
-        value: String(field.value),
-        confidence: field.confidence,
-        source_ref: field.source_quote,
-        source_type: "text_extraction",
-        linked_table: "products",
-        linked_row_id: null,
-        status: "needs_review",
-      });
-    }
-
-    for (const variant of product.variants ?? []) {
-      for (const key of VARIANT_PRICING_FIELDS) {
-        const field = variant[key];
-        facts.push({
-          tenant_id: tenantId,
-          category: "pricing",
-          label: key,
-          value: String(field.value),
-          confidence: field.confidence,
-          source_ref: field.source_quote,
-          source_type: "text_extraction",
-          linked_table: "product_variants",
-          linked_row_id: null,
-          status: "needs_review",
-        });
-      }
-
-      for (const key of VARIANT_PRODUCT_FIELDS) {
-        const field = variant[key];
-        facts.push({
-          tenant_id: tenantId,
-          category: "product",
-          label: key,
-          value: String(field.value),
-          confidence: field.confidence,
-          source_ref: field.source_quote,
-          source_type: "text_extraction",
-          linked_table: "product_variants",
-          linked_row_id: null,
-          status: "needs_review",
-        });
-      }
-    }
-  }
-
-  return facts;
+  return facts.map((fact) => ({
+    tenant_id: tenantId,
+    category: fact.category,
+    label: fact.label,
+    value: fact.value,
+    confidence: fact.confidence,
+    status: "needs_review",
+    source_type: sourceType,
+    source_ref: fact.quote,
+    linked_table: null,
+    linked_row_id: null,
+  }));
 }
 
 export function ExtractTextPage() {
@@ -205,9 +98,9 @@ export function ExtractTextPage() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const result = extract.data;
-  const products = result?.products ?? [];
+  const facts = result?.facts ?? [];
   const canExtract = text.trim().length > 0 && !extract.isPending;
-  const canSave = products.length > 0 && !saving;
+  const canSave = facts.length > 0 && !saving;
 
   useEffect(() => {
     if (extract.isError) {
@@ -241,14 +134,14 @@ export function ExtractTextPage() {
   }
 
   async function onSaveToQueue() {
-    if (!result || products.length === 0) return;
+    if (!result || facts.length === 0) return;
     setSaving(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const tenantId = sessionData.session?.user.id;
       if (!tenantId) throw new Error("Not authenticated");
 
-      const factsArray = buildFacts(products, tenantId);
+      const factsArray = buildFactRows(facts, tenantId, "text_extraction");
 
       await createBusinessFacts.mutateAsync(factsArray);
 
@@ -277,7 +170,7 @@ export function ExtractTextPage() {
         <h1 className="text-2xl font-semibold text-ink">Extract from text</h1>
         <p className="text-sm text-ink-muted">
           Paste merchant copy, product descriptions, or website text. The AI will
-          extract structured product data for you to review.
+          extract structured business facts for you to review.
         </p>
       </div>
 
@@ -299,14 +192,14 @@ export function ExtractTextPage() {
 
         <div className="flex justify-end">
           <Button onClick={onExtract} disabled={!canExtract}>
-            {extract.isPending ? "Extractingâ€¦" : "Extract Products"}
+            {extract.isPending ? "Extracting…" : "Extract Facts"}
           </Button>
         </div>
       </Card>
 
       {extract.isPending && (
         <Card className="p-6">
-          <p className="text-sm text-ink-muted">Extracting productsâ€¦</p>
+          <p className="text-sm text-ink-muted">Extracting facts…</p>
         </Card>
       )}
 
@@ -314,15 +207,15 @@ export function ExtractTextPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-medium text-ink">
-              Extracted products ({products.length})
+              Extracted facts ({facts.length})
             </h2>
           </div>
 
-          <ProductsResult products={products} />
+          <FactsResult facts={facts} />
 
           <div className="flex justify-end">
             <Button onClick={onSaveToQueue} disabled={!canSave}>
-              {saving ? "Savingâ€¦" : "Save to Facts"}
+              {saving ? "Saving…" : "Save to Facts"}
             </Button>
           </div>
         </div>

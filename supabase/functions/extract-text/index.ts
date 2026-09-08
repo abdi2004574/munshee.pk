@@ -1,6 +1,6 @@
-// Supabase Edge Function: extract-text
+﻿// Supabase Edge Function: extract-text
 // Runtime: Deno
-// Purpose: Extract structured product/variant data from merchant-supplied text
+// Purpose: Extract structured business facts from raw text of small Pakistani businesses
 //          by calling OpenRouter (meta-llama/llama-3.3-70b).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -9,49 +9,10 @@ import { z } from "https://esm.sh/zod@3.23.8";
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const OPENROUTER_MODEL = "meta-llama/llama-3.3-70b";
 
-const SYSTEM_PROMPT = `You are an e-commerce data extraction assistant for Munshee.pk, a Pakistani seller operating system.
-Extract ALL product and variant information from the provided text and return it as a single JSON object.
-
-Required JSON schema:
-{
-  "products": [
-    {
-      "name": {
-        "value": "string - product display name",
-        "confidence": "number 0-1 - how certain you are this value is correct",
-        "source_quote": "string - EXACT verbatim substring from the input text that supports this value, max 200 chars. If no clear snippet exists, set to null"
-      },
-      "sku": { "value": "string|null - product SKU if visible, otherwise null", "confidence": "number 0-1", "source_quote": "string|null - exact verbatim substring, max 200 chars, or null" },
-      "description": { "value": "string - full product description", "confidence": "number 0-1", "source_quote": "string|null - exact verbatim substring, max 200 chars, or null" },
-      "category": { "value": "string - product category", "confidence": "number 0-1", "source_quote": "string|null - exact verbatim substring, max 200 chars, or null" },
-      "brand": { "value": "string|null - brand name if visible, otherwise null", "confidence": "number 0-1", "source_quote": "string|null - exact verbatim substring, max 200 chars, or null" },
-      "status": { "value": "active | draft | archived - default to 'draft' if uncertain", "confidence": "number 0-1", "source_quote": "string|null - exact verbatim substring, max 200 chars, or null" },
-      "tags": { "value": ["string"], "confidence": "number 0-1", "source_quote": "string|null - exact verbatim substring, max 200 chars, or null" },
-      "weight_grams": { "value": "number | null - weight in grams if visible", "confidence": "number 0-1", "source_quote": "string|null - exact verbatim substring, max 200 chars, or null" },
-      "variants": [
-        {
-          "sku": { "value": "string|null - variant SKU", "confidence": "number 0-1", "source_quote": "string|null - exact verbatim substring, max 200 chars, or null" },
-          "name": { "value": "string - variant name (e.g. 'Red / Large')", "confidence": "number 0-1", "source_quote": "string|null - exact verbatim substring, max 200 chars, or null" },
-          "price": { "value": "number - price in PKR", "confidence": "number 0-1", "source_quote": "string|null - exact verbatim substring, max 200 chars, or null" },
-          "compare_at_price": { "value": "number | null - original/MSRP if visible", "confidence": "number 0-1", "source_quote": "string|null - exact verbatim substring, max 200 chars, or null" },
-          "cost_price": { "value": "number | null - COGS if visible", "confidence": "number 0-1", "source_quote": "string|null - exact verbatim substring, max 200 chars, or null" },
-          "barcode": { "value": "string | null", "confidence": "number 0-1", "source_quote": "string|null - exact verbatim substring, max 200 chars, or null" },
-          "options": { "value": { "color": "red", "size": "L" } - variant attributes, "confidence": "number 0-1", "source_quote": "string|null - exact verbatim substring, max 200 chars, or null" },
-          "status": { "value": "active | draft | archived - default 'active'", "confidence": "number 0-1", "source_quote": "string|null - exact verbatim substring, max 200 chars, or null" }
-        }
-      ]
-    }
-  ]
-}
-
-Rules:
-- Extract every distinct product you can find.
-- Do NOT invent values. If a field is not present in the text, use null for value and set confidence low (e.g. 0.1) with source_quote null.
-- confidence must reflect actual extraction certainty. Explicit values = high confidence. Inferred/implied = lower confidence. Never use a placeholder.
-- source_quote must be an exact substring of the original input. If no clear source snippet exists, set confidence low and source_quote to null. Do not fabricate quotes.
-- Prices must be numbers, not strings with currency symbols.
-- source_quote max 200 chars.
-- Return ONLY valid JSON. No markdown, no explanation, no preamble.`;
+const SYSTEM_PROMPT = `You extract structured business facts from raw text of small Pakistani businesses. Output ONLY valid JSON:
+{"businessName":"...","facts":[{"category":"...","label":"...","value":"...","confidence":0.0,"quote":"..."}]}
+Categories allowed: identity, contact, timings, delivery, payment, policy, product, faq. NEVER invent facts — only what is explicitly in the text. Uncertain -> confidence below 0.5. Products include PKR prices exactly as written. Handle Urdu and Roman Urdu natively. Max 25 facts.
+quote = max 12 words copied verbatim from the source text.`;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -115,66 +76,6 @@ function extractJson(content: string): unknown {
   throw new Error("No JSON found in model output");
 }
 
-type FieldValue = {
-  value: unknown;
-  confidence: unknown;
-  source_quote: unknown;
-};
-
-function isFieldObject(value: unknown): value is FieldValue {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    !Array.isArray(value) &&
-    Object.prototype.hasOwnProperty.call(value, "value") &&
-    Object.prototype.hasOwnProperty.call(value, "confidence") &&
-    Object.prototype.hasOwnProperty.call(value, "source_quote")
-  );
-}
-
-function isValidVariant(variant: unknown): boolean {
-  if (!variant || typeof variant !== "object") return false;
-  const v = variant as Record<string, unknown>;
-  const fieldKeys = [
-    "sku",
-    "name",
-    "price",
-    "compare_at_price",
-    "cost_price",
-    "barcode",
-    "options",
-    "status",
-  ];
-  return fieldKeys.every((key) => isFieldObject(v[key]));
-}
-
-function isValidProduct(product: unknown): boolean {
-  if (!product || typeof product !== "object") return false;
-  const p = product as Record<string, unknown>;
-  const fieldKeys = [
-    "name",
-    "sku",
-    "description",
-    "category",
-    "brand",
-    "status",
-    "tags",
-    "weight_grams",
-  ];
-  if (!fieldKeys.every((key) => isFieldObject(p[key]))) return false;
-  if (Array.isArray(p.variants)) {
-    return p.variants.every((v) => isValidVariant(v));
-  }
-  return true;
-}
-
-function isValidProductsPayload(value: unknown): boolean {
-  if (!value || typeof value !== "object") return false;
-  const v = value as { products?: unknown };
-  if (!Array.isArray(v.products)) return false;
-  return v.products.every((p) => isValidProduct(p));
-}
-
 async function enforceAction(
   supabase: ReturnType<typeof createClient>,
   businessId: string,
@@ -206,6 +107,45 @@ async function enforceAction(
   }
 
   return { ok: true, actionsLeft: result.actions_left };
+}
+
+type Fact = {
+  category: string;
+  label: string;
+  value: string;
+  confidence: number;
+  quote: string;
+};
+
+const VALID_CATEGORIES = new Set([
+  "identity",
+  "contact",
+  "timings",
+  "delivery",
+  "payment",
+  "policy",
+  "product",
+  "faq",
+]);
+
+function validateFact(fact: unknown): Fact | null {
+  if (!fact || typeof fact !== "object") return null;
+  const f = fact as Record<string, unknown>;
+
+  const category = typeof f.category === "string" ? f.category : "";
+  const label = typeof f.label === "string" ? f.label : "";
+  const value = typeof f.value === "string" ? f.value : "";
+  const confidence = typeof f.confidence === "number" ? f.confidence : -1;
+  const quote = typeof f.quote === "string" ? f.quote : "";
+
+  if (!VALID_CATEGORIES.has(category)) return null;
+  if (label.length === 0) return null;
+  if (value.length === 0) return null;
+  if (confidence < 0 || confidence > 1) return null;
+  const wordCount = quote.trim().split(/\s+/).filter(Boolean).length;
+  if (wordCount > 12) return null;
+
+  return { category, label, value, confidence, quote };
 }
 
 Deno.serve(async (req: Request) => {
@@ -280,8 +220,8 @@ Deno.serve(async (req: Request) => {
       { role: "system", content: SYSTEM_PROMPT },
       { role: "user", content: userText },
     ],
-    temperature: 0.1,
-    max_tokens: 4096,
+    temperature: 0.2,
+    max_tokens: 2000,
   };
 
   let openRouterResp: Response;
@@ -298,7 +238,7 @@ Deno.serve(async (req: Request) => {
     });
   } catch (err) {
     console.error("OpenRouter fetch failed:", err);
-    return jsonResponse(500, { error: "Failed to reach OpenRouter" });
+    return jsonResponse(500, { error: "AI se connect nahi ho pa raha — thodi der baad try karein" });
   }
 
   if (!openRouterResp.ok) {
@@ -307,7 +247,7 @@ Deno.serve(async (req: Request) => {
       `OpenRouter non-200 (${openRouterResp.status}):`,
       errText.slice(0, 500)
     );
-    return jsonResponse(502, { error: "OpenRouter request failed" });
+    return jsonResponse(502, { error: "AI se data receive karne mein problem hui — dobara koshish karein" });
   }
 
   let completion: {
@@ -316,12 +256,12 @@ Deno.serve(async (req: Request) => {
   try {
     completion = await openRouterResp.json();
   } catch {
-    return jsonResponse(502, { error: "Invalid response from AI model" });
+    return jsonResponse(502, { error: "AI se data process karne mein problem hui — dobara koshish karein" });
   }
 
   const content = completion?.choices?.[0]?.message?.content;
   if (typeof content !== "string" || content.trim() === "") {
-    return jsonResponse(502, { error: "Invalid response from AI model" });
+    return jsonResponse(502, { error: "AI se data process karne mein problem hui — dobara koshish karein" });
   }
 
   let parsed: unknown;
@@ -329,12 +269,88 @@ Deno.serve(async (req: Request) => {
     parsed = extractJson(content);
   } catch (err) {
     console.error("JSON parse failed:", err, "raw:", content.slice(0, 500));
-    return jsonResponse(502, { error: "Invalid response from AI model" });
+    return jsonResponse(502, { error: "AI se data process karne mein problem hui — dobara koshish karein" });
   }
 
-  if (!isValidProductsPayload(parsed)) {
-    return jsonResponse(502, { error: "Invalid response from AI model" });
+  if (!parsed || typeof parsed !== "object") {
+    return jsonResponse(502, { error: "AI se data process karne mein problem hui — dobara koshish karein" });
   }
 
-  return jsonResponse(200, { data: parsed });
+  const root = parsed as Record<string, unknown>;
+  const businessName = typeof root.businessName === "string" ? root.businessName : "";
+  const rawFacts = Array.isArray(root.facts) ? root.facts : [];
+
+  const validFacts: Fact[] = rawFacts
+    .map(validateFact)
+    .filter((f): f is Fact => f !== null)
+    .slice(0, 25);
+
+  let facts: Fact[];
+  let warning: string | undefined;
+
+  if (validFacts.length === 0) {
+    facts = [];
+    warning = "Text se kuch nahi mila — image ya website URL se try karein";
+  } else {
+    facts = validFacts;
+  }
+
+  const factRows = facts.map((fact) => ({
+    tenant_id: tenantId,
+    category: fact.category,
+    label: fact.label,
+    value: fact.value,
+    confidence: fact.confidence,
+    status: "needs_review",
+    source_type: "text",
+    source_ref: fact.quote,
+    linked_table: null,
+    linked_row_id: null,
+  }));
+
+  if (factRows.length > 0) {
+    const { error: factsError } = await supabase
+      .from("business_facts")
+      .insert(factRows);
+
+    if (factsError) {
+      console.error("Failed to insert business_facts:", factsError);
+      return jsonResponse(500, { error: "Facts save karne mein problem hui — dobara koshish karein" });
+    }
+  }
+
+  const { error: ledgerError } = await supabase.from("action_ledger").insert({
+    business_id: tenantId,
+    actor_type: "system",
+    tool_name: "extract_facts",
+    input_summary: `text_len=${text.length}`,
+    result_summary: `extracted ${facts.length} facts`,
+    status: "success",
+    autonomy_level: 0,
+    estimated_value_pkr: 0,
+    reversible: false,
+  });
+
+  if (ledgerError) {
+    console.error("action_ledger insert failed:", ledgerError);
+  }
+
+  const { error: auditError } = await supabase.from("audit_log").insert({
+    tenant_id: tenantId,
+    fact_id: null,
+    actor: tenantId,
+    action: "auto_extract",
+    old_value: null,
+    new_value: {
+      text_len: text.length,
+      facts_count: facts.length,
+      source_type: "text",
+    },
+  });
+
+  if (auditError) {
+    console.error("audit_log insert failed:", auditError);
+  }
+
+  return jsonResponse(200, { facts, businessName, warning });
 });

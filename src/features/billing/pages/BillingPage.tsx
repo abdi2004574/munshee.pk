@@ -16,7 +16,7 @@ function formatPrice(pkr: number): string {
 }
 
 function formatDate(iso: string | null): string {
-  if (!iso) return "—";
+  if (!iso) return "ï¿½";
   try {
     return new Date(iso).toLocaleDateString("en-PK", {
       year: "numeric",
@@ -142,7 +142,7 @@ export function BillingPage() {
 
       {/* Current Plan Card */}
       {currentPlan && (
-        <Card className="p-6">
+        <Card id="action-packs" className="p-6">
           <p className="text-sm font-medium text-ink-muted">{t("billing.current_plan")}</p>
           <div className="mt-2 flex items-baseline gap-3">
             <h2 className="text-2xl font-bold text-ink">{currentPlan.name}</h2>
@@ -174,7 +174,7 @@ export function BillingPage() {
 
       {/* Feature Caps */}
       {Object.keys(featureCaps).length > 0 && (
-        <Card className="p-6">
+        <Card id="action-packs" className="p-6">
           <h3 className="text-lg font-medium text-ink">{t("billing.feature_caps")}</h3>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {Object.entries(featureCaps).map(([key, value]) => (
@@ -191,7 +191,7 @@ export function BillingPage() {
 
       {/* Action Packs */}
       {packs.length > 0 && (
-        <Card className="p-6">
+        <Card id="action-packs" className="p-6">
           <h3 className="text-lg font-medium text-ink">{t("billing.action_packs")}</h3>
           <p className="mt-1 text-sm text-ink-muted">
             Need more Actions? Buy a pack and an admin will activate it.
@@ -224,7 +224,7 @@ export function BillingPage() {
 
       {/* Credit Ledger */}
       {ledgerQuery.data && ledgerQuery.data.length > 0 && (
-        <Card className="p-6">
+        <Card id="action-packs" className="p-6">
           <h3 className="text-lg font-medium text-ink">{t("billing.credit_ledger")}</h3>
           <div className="mt-4 space-y-2">
             {ledgerQuery.data.map((entry) => (
@@ -250,7 +250,7 @@ export function BillingPage() {
       )}
 
       {/* Plan Switcher */}
-      <div>
+      <div id="plan-switcher">
         <h2 className="text-lg font-medium text-ink">{t("billing.plan_switcher")}</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-3">
           {plans.map((plan) => (
@@ -281,7 +281,7 @@ export function BillingPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <Card className="w-full max-w-md p-6">
             <h2 className="text-lg font-semibold text-ink">
-              {t("billing.manual_pay")} — {selectedPlan.name}
+              {t("billing.manual_pay")} ï¿½ {selectedPlan.name}
             </h2>
             <p className="mt-2 text-sm text-ink-muted">
               {formatPrice(selectedPlan.price_pkr)} / month

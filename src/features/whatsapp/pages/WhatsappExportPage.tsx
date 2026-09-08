@@ -3,13 +3,12 @@ import { useNavigate } from 'react-router'
 import { Card } from '@/components/Card'
 import { Button } from '@/components/Button'
 import { Badge } from '@/components/Badge'
-import { Money } from '@/components/Money'
 import { EmptyState } from '@/components/EmptyState'
 import { useWhatsAppExport } from '../hooks'
 import { useCreateBusinessFacts } from '@/features/facts/hooks'
 import { useCreateAuditLog } from '@/features/audit/hooks'
 import { supabase } from '@/lib/supabase'
-import type { ExtractedProduct, ExtractedVariant } from '@/features/extraction/api'
+import type { Fact } from '@/features/extraction/api'
 import type { ParsedWhatsAppMessage } from '../utils/parse'
 import { parseWhatsAppExport } from '../utils/parse'
 import { buildWhatsAppFacts, fileToText } from '../api'
@@ -18,7 +17,7 @@ const TRUNCATE_DESCRIPTION = 220
 
 function truncate(text: string, max: number): string {
   if (text.length <= max) return text
-  return `${text.slice(0, max).trimEnd()}â€¦`
+  return `${text.slice(0, max).trimEnd()}…`
 }
 
 function buildSourceRef(messages: ParsedWhatsAppMessage[]): string {
@@ -31,16 +30,16 @@ function buildSourceRef(messages: ParsedWhatsAppMessage[]): string {
   )}), ${from} to ${to}`
 }
 
-interface WhatsappProductsResultProps {
-  products: ExtractedProduct[]
+interface WhatsappFactsResultProps {
+  facts: Fact[]
 }
 
-function WhatsappProductsResult({ products }: WhatsappProductsResultProps) {
-  if (products.length === 0) {
+function WhatsappFactsResult({ facts }: WhatsappFactsResultProps) {
+  if (facts.length === 0) {
     return (
       <Card className="p-6">
         <p className="text-sm text-ink-muted">
-          The extraction completed but no products were found in the chat.
+          The extraction completed but no facts were found in the chat.
         </p>
       </Card>
     )
@@ -48,72 +47,24 @@ function WhatsappProductsResult({ products }: WhatsappProductsResultProps) {
 
   return (
     <div className="space-y-3">
-      {products.map((product, idx) => (
-        <Card
-          key={`${product.sku.value ?? product.name.value}-${idx}`}
-          className="p-4"
-        >
+      {facts.map((fact, idx) => (
+        <Card key={idx} className="p-4">
           <div className="space-y-2">
             <div className="flex items-start justify-between gap-3">
               <h3 className="text-base font-semibold text-ink">
-                {product.name.value}
+                {fact.label}
               </h3>
-              {product.sku.value && (
-                <Badge variant="info">SKU: {product.sku.value}</Badge>
-              )}
-            </div>
-
-            <div className="flex flex-wrap gap-2 text-xs text-ink-muted">
-              {product.category.value && (
-                <span>
-                  <span className="font-medium text-ink">Category:</span>{' '}
-                  {product.category.value}
+              <div className="flex items-center gap-2">
+                <Badge variant="info">{fact.category}</Badge>
+                <span className="text-xs text-ink-muted">
+                  {Math.round(fact.confidence * 100)}%
                 </span>
-              )}
-              {product.brand.value && (
-                <span>
-                  <span className="font-medium text-ink">Brand:</span>{' '}
-                  {product.brand.value}
-                </span>
-              )}
+              </div>
             </div>
-
-            {product.description.value && (
-              <p className="text-sm text-ink-muted">
-                {truncate(product.description.value, TRUNCATE_DESCRIPTION)}
-              </p>
-            )}
-
-            {product.variants && product.variants.length > 0 && (
-              <div className="mt-2 space-y-1 border-t border-gray-100 pt-2">
-                <p className="text-xs font-medium text-ink-muted">Variants</p>
-                <ul className="space-y-1">
-                  {product.variants.map((variant: ExtractedVariant, vIdx) => (
-                    <li
-                      key={`${variant.sku.value ?? variant.name.value ?? 'variant'}-${vIdx}`}
-                      className="flex items-center justify-between text-sm"
-                    >
-                      <span className="text-ink">
-                        {variant.name.value ?? variant.sku.value ?? `Variant ${vIdx + 1}`}
-                      </span>
-                      {variant.price.value != null && (
-                        <Money value={variant.price.value} currency="PKR" />
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {product.tags.value && product.tags.value.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {product.tags.value.map((tag) => (
-                  <Badge key={tag} variant="default">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-            )}
+            <p className="text-sm text-ink">{fact.value}</p>
+            <p className="text-xs text-ink-muted italic">
+              &ldquo;{truncate(fact.quote, TRUNCATE_DESCRIPTION)}&rdquo;
+            </p>
           </div>
         </Card>
       ))}
@@ -163,9 +114,9 @@ export function WhatsappExportPage() {
   const [saveError, setSaveError] = useState<string | null>(null)
 
   const result = extract.data
-  const products = result?.products ?? []
+  const facts = result?.facts ?? []
   const canExtract = Boolean(file) && !extract.isPending
-  const canSave = products.length > 0 && !saving
+  const canSave = facts.length > 0 && !saving
   const hasPreview = Boolean(file) && messages !== null
 
   async function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
@@ -195,7 +146,7 @@ export function WhatsappExportPage() {
   }
 
   async function onSaveToFacts() {
-    if (!messages || !result || products.length === 0) return
+    if (!messages || !result || facts.length === 0) return
     setSaveError(null)
     setSaving(true)
     try {
@@ -204,9 +155,9 @@ export function WhatsappExportPage() {
       if (!tenantId) throw new Error('Not authenticated')
 
       const sourceRef = buildSourceRef(messages)
-      const facts = buildWhatsAppFacts(products, tenantId, sourceRef)
+      const insertFacts = buildWhatsAppFacts(facts, tenantId, sourceRef)
 
-      await createBusinessFacts.mutateAsync(facts)
+      await createBusinessFacts.mutateAsync(insertFacts)
 
       await createAuditLog.mutateAsync({
         tenant_id: tenantId,
@@ -214,7 +165,7 @@ export function WhatsappExportPage() {
         actor: tenantId,
         action: 'import',
         old_value: null,
-        new_value: { source_type: 'whatsapp_export', facts_count: facts.length },
+        new_value: { source_type: 'whatsapp_export', facts_count: insertFacts.length },
       })
 
       navigate('/apps/review')
@@ -230,7 +181,7 @@ export function WhatsappExportPage() {
       <div>
         <h1 className="text-2xl font-semibold text-ink">WhatsApp chat export</h1>
         <p className="text-sm text-ink-muted">
-          Upload a WhatsApp chat export (.zip or .txt) to extract product data
+          Upload a WhatsApp chat export (.zip or .txt) to extract facts
           discussed in the conversation.
         </p>
       </div>
@@ -256,7 +207,7 @@ export function WhatsappExportPage() {
             strokeLinecap="round"
             strokeLinejoin="round"
           >
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+            <path d="M21 15v4a2 0 0 1-2 2H5a2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
           </svg>
           <div>
             <span className="block text-sm font-medium text-ink">
@@ -289,7 +240,7 @@ export function WhatsappExportPage() {
 
         <div className="flex justify-end">
           <Button onClick={onExtract} disabled={!canExtract}>
-            {extract.isPending ? 'Extractingâ€¦' : 'Extract Facts'}
+            {extract.isPending ? 'Extracting…' : 'Extract Facts'}
           </Button>
         </div>
       </Card>
@@ -297,7 +248,7 @@ export function WhatsappExportPage() {
       {extract.isPending && (
         <Card className="p-6">
           <p className="text-sm text-ink-muted">
-            Reading your chat and extracting product dataâ€¦
+            Reading your chat and extracting facts…
           </p>
         </Card>
       )}
@@ -306,16 +257,16 @@ export function WhatsappExportPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-medium text-ink">
-              Extracted products ({products.length})
+              Extracted facts ({facts.length})
             </h2>
             {saveError && <p className="text-sm text-danger">{saveError}</p>}
           </div>
 
-          <WhatsappProductsResult products={products} />
+          <WhatsappFactsResult facts={facts} />
 
           <div className="flex justify-end">
             <Button onClick={onSaveToFacts} disabled={!canSave}>
-              {saving ? 'Savingâ€¦' : 'Save to Facts'}
+              {saving ? 'Saving…' : 'Save Facts'}
             </Button>
           </div>
         </div>

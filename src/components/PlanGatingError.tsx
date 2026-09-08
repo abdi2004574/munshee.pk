@@ -27,9 +27,13 @@ export function PlanGatingError({ open, onClose, mode, feature, actionsLeft = 0,
     }
   }, [open]);
 
-  function handleUpgrade() {
+  function handleUpgrade(target: string | null) {
     onClose();
-    navigate("/apps/billing");
+    if (target) {
+      navigate("/apps/billing#" + target);
+    } else {
+      navigate("/apps/billing");
+    }
   }
 
   const isActions = mode === "actions_exhausted";
@@ -43,6 +47,11 @@ export function PlanGatingError({ open, onClose, mode, feature, actionsLeft = 0,
       <div className="relative w-full max-w-md">
         <div className={`absolute top-0 right-0 h-1.5 w-12 rounded-bl-full ${isActions ? "bg-brand-500" : "bg-amber-500"}`}></div>
         <div className="p-6">
+          {isActions && (
+            <div className="mb-4 flex justify-center">
+              <span className="text-5xl">🎉</span>
+            </div>
+          )}
           <div className="flex items-start gap-4">
             <div className="flex-shrink-0">
               <Icon
@@ -55,7 +64,7 @@ export function PlanGatingError({ open, onClose, mode, feature, actionsLeft = 0,
               {isActions ? (
                 <>
                   <h2 className="text-lg font-semibold text-brand-600">
-                    {t("errors.actions_exhausted_modal.celebration_title")}
+                    {"Aapne " + actionsMonthly + " Actions mein zabardast kaam kiya 🎉"}
                   </h2>
                   <p className="mt-2 text-sm text-ink-muted">
                     {t("errors.actions_exhausted_modal.celebration_message")}
@@ -99,14 +108,28 @@ export function PlanGatingError({ open, onClose, mode, feature, actionsLeft = 0,
             </div>
           </div>
 
-          <div className="mt-6 flex justify-end gap-2">
-            <Button variant="secondary" onClick={onClose}>
-              {isActions ? t("errors.actions_exhausted_modal.close") : t("errors.feature_cap_modal.close")}
-            </Button>
-            <Button onClick={handleUpgrade}>
-              {isActions ? t("errors.actions_exhausted_modal.cta") : t("errors.feature_cap_modal.cta")}
-            </Button>
-          </div>
+          {isActions ? (
+            <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <Button variant="secondary" onClick={onClose}>
+                {t("errors.actions_exhausted_modal.close")}
+              </Button>
+              <Button variant="secondary" onClick={() => handleUpgrade("action-packs")}>
+                100 Actions ka Pack load karein — Rs 800
+              </Button>
+              <Button onClick={() => handleUpgrade("plan-switcher")}>
+                YA Starter lein — 800 Actions + weekly re-scan, Rs 4,500
+              </Button>
+            </div>
+          ) : (
+            <div className="mt-6 flex justify-end gap-2">
+              <Button variant="secondary" onClick={onClose}>
+                {t("errors.feature_cap_modal.close")}
+              </Button>
+              <Button onClick={() => handleUpgrade(null)}>
+                {t("errors.feature_cap_modal.cta")}
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </dialog>

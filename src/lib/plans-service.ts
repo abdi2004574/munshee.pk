@@ -18,6 +18,7 @@ export interface Subscription {
   period_start: string | null;
   period_end: string | null;
   subscription_status: string | null;
+  reference_number: string | null;
   admin_granted: boolean;
   actions_remaining: number;
   last_grant_at: string | null;
@@ -46,6 +47,7 @@ export interface ManagedBusiness {
   managed_by: string | null;
   actions_left: number | null;
   subscription_status: string | null;
+  reference_number: string | null;
 }
 
 export interface PendingPayment {
@@ -56,6 +58,7 @@ export interface PendingPayment {
   created_at: string;
   period_end: string | null;
   subscription_status: string | null;
+  reference_number: string | null;
 }
 
 export interface ActionPack {
@@ -120,6 +123,7 @@ export async function getCurrentPlan(businessId?: string): Promise<CurrentPlan> 
         actions_remaining: Number(row.actions_left ?? 0),
         last_grant_at: null,
         subscription_status: String(row.subscription_status),
+        reference_number: row.reference_number ? String(row.reference_number) : null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       }
@@ -225,6 +229,7 @@ export async function createSubscription(
     actions_remaining: Number(row.actions_remaining ?? 0),
     last_grant_at: row.last_grant_at ? String(row.last_grant_at) : null,
     subscription_status: row.status ? String(row.status) : null,
+    reference_number: row.reference_number ? String(row.reference_number) : null,
     created_at: String(row.created_at),
     updated_at: String(row.updated_at),
   };
@@ -267,6 +272,7 @@ export async function getManagedBusinesses(): Promise<ManagedBusiness[]> {
     subscription_status: row.subscription_status
       ? String(row.subscription_status)
       : null,
+    reference_number: row.reference_number ? String(row.reference_number) : null,
   }));
 }
 
@@ -301,6 +307,7 @@ export async function getPendingPayments(): Promise<PendingPayment[]> {
       created_at: String(row.created_at ?? ""),
       period_end: row.period_end ? String(row.period_end) : null,
       subscription_status: row.status ? String(row.status) : null,
+      reference_number: row.reference_number ? String(row.reference_number) : null,
     };
   });
 }

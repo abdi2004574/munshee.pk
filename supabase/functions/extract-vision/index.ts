@@ -1,116 +1,18 @@
 // Supabase Edge Function: extract-vision
 // Runtime: Deno
-// Purpose: Extract structured product/variant data from a product image
-//          by calling OpenRouter (qwen/qwen-2.5-vl-72b).
+// Purpose: Extract structured business facts from a photo by calling OpenRouter
+//          (qwen/qwen-2.5-vl-72b-instruct).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "https://esm.sh/zod@3.23.8";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
-const OPENROUTER_MODEL = "qwen/qwen-2.5-vl-72b";
+const OPENROUTER_MODEL = "qwen/qwen-2.5-vl-72b-instruct";
 
-const SYSTEM_PROMPT = `You are an e-commerce data extraction assistant for Munshee.pk, a Pakistani seller operating system.
-Extract ALL product and variant information from the provided image and return it as a single JSON object.
-
-Required JSON schema:
-{
-  "products": [
-    {
-      "name": {
-        "value": "string - product display name",
-        "confidence": "number 0-1 - how certain you are this value is correct based on the image",
-        "source_quote": "string - EXACT verbatim text visible in the image that supports this value, max 200 chars. If no clear text snippet exists, set to null"
-      },
-      "sku": {
-        "value": "string - product SKU if visible, otherwise null",
-        "confidence": "number 0-1",
-        "source_quote": "string - EXACT text from image, max 200 chars, or null"
-      },
-      "description": {
-        "value": "string - full product description",
-        "confidence": "number 0-1",
-        "source_quote": "string - EXACT text from image, max 200 chars, or null"
-      },
-      "category": {
-        "value": "string - product category",
-        "confidence": "number 0-1",
-        "source_quote": "string - EXACT text from image, max 200 chars, or null"
-      },
-      "brand": {
-        "value": "string - brand name if visible, otherwise null",
-        "confidence": "number 0-1",
-        "source_quote": "string - EXACT text from image, max 200 chars, or null"
-      },
-      "status": {
-        "value": "active | draft | archived - default to 'draft' if uncertain",
-        "confidence": "number 0-1",
-        "source_quote": "string - EXACT text from image, max 200 chars, or null"
-      },
-      "tags": {
-        "value": ["string"],
-        "confidence": "number 0-1",
-        "source_quote": "string - EXACT text from image, max 200 chars, or null"
-      },
-      "weight_grams": {
-        "value": "number | null - weight in grams if visible",
-        "confidence": "number 0-1",
-        "source_quote": "string - EXACT text from image, max 200 chars, or null"
-      },
-      "variants": [
-        {
-          "sku": {
-            "value": "string - variant SKU",
-            "confidence": "number 0-1",
-            "source_quote": "string - EXACT text from image, max 200 chars, or null"
-          },
-          "name": {
-            "value": "string - variant name (e.g. 'Red / Large')",
-            "confidence": "number 0-1",
-            "source_quote": "string - EXACT text from image, max 200 chars, or null"
-          },
-          "price": {
-            "value": "number - price in PKR",
-            "confidence": "number 0-1",
-            "source_quote": "string - EXACT text from image, max 200 chars, or null"
-          },
-          "compare_at_price": {
-            "value": "number | null - original/MSRP if visible",
-            "confidence": "number 0-1",
-            "source_quote": "string - EXACT text from image, max 200 chars, or null"
-          },
-          "cost_price": {
-            "value": "number | null - COGS if visible",
-            "confidence": "number 0-1",
-            "source_quote": "string - EXACT text from image, max 200 chars, or null"
-          },
-          "barcode": {
-            "value": "string | null",
-            "confidence": "number 0-1",
-            "source_quote": "string - EXACT text from image, max 200 chars, or null"
-          },
-          "options": {
-            "value": { "color": "red", "size": "L" } - variant attributes,
-            "confidence": "number 0-1",
-            "source_quote": "string - EXACT text from image, max 200 chars, or null"
-          },
-          "status": {
-            "value": "active | draft | archived - default 'active'",
-            "confidence": "number 0-1",
-            "source_quote": "string - EXACT text from image, max 200 chars, or null"
-          }
-        }
-      ]
-    }
-  ]
-}
-
-Rules:
-- Extract every distinct product you can see in the image.
-- Do NOT invent values. If a field is not visible, use null or [].
-- confidence must reflect actual extraction certainty. Explicit values = high confidence. Inferred/implied = lower confidence. Never use a placeholder.
-- source_quote must be an exact substring of the original image text. If no clear source snippet exists, set confidence low and source_quote to null. Do not fabricate quotes.
-- Prices must be numbers, not strings with currency symbols.
-- Return ONLY valid JSON. No markdown, no explanation, no preamble.`;
+const SYSTEM_PROMPT = `You extract structured business facts from images of small Pakistani businesses. Output ONLY valid JSON:
+{"businessName":"...","facts":[{"category":"...","label":"...","value":"...","confidence":0.0,"quote":"..."}]}
+Categories allowed: identity, contact, timings, delivery, payment, policy, product, faq. NEVER invent facts — only what is explicitly visible in the image. Uncertain → confidence below 0.5. Products include PKR prices exactly as written. Handle Urdu and Roman Urdu natively. Max 25 facts.
+quote = max 12 words copied verbatim from the image text.`;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -160,65 +62,43 @@ function extractJson(content: string): unknown {
   throw new Error("No JSON found in model output");
 }
 
-function isFieldObject(value: unknown): value is {
-  value: unknown;
+type Fact = {
+  category: string;
+  label: string;
+  value: string;
   confidence: number;
-  source_quote: string | null;
-} {
-  if (!value || typeof value !== "object") return false;
-  const v = value as Record<string, unknown>;
-  return (
-    "value" in v &&
-    "confidence" in v &&
-    "source_quote" in v &&
-    (v.confidence === null || typeof v.confidence === "number")
-  );
-}
+  quote: string;
+};
 
-function isValidVariant(value: unknown): boolean {
-  if (!value || typeof value !== "object") return false;
-  const v = value as Record<string, unknown>;
-  const requiredFields = [
-    "sku",
-    "name",
-    "price",
-    "compare_at_price",
-    "cost_price",
-    "barcode",
-    "options",
-    "status",
-  ];
-  return requiredFields.every(
-    (field) => isFieldObject((v as Record<string, unknown>)[field])
-  );
-}
+const VALID_CATEGORIES = new Set([
+  "identity",
+  "contact",
+  "timings",
+  "delivery",
+  "payment",
+  "policy",
+  "product",
+  "faq",
+]);
 
-function isValidProduct(value: unknown): boolean {
-  if (!value || typeof value !== "object") return false;
-  const v = value as Record<string, unknown>;
-  const requiredFields = [
-    "name",
-    "sku",
-    "description",
-    "category",
-    "brand",
-    "status",
-    "tags",
-    "weight_grams",
-  ];
-  const hasRequiredFields = requiredFields.every(
-    (field) => isFieldObject((v as Record<string, unknown>)[field])
-  );
-  const hasValidVariants = Array.isArray(v.variants)
-    ? v.variants.every(isValidVariant)
-    : true;
-  return hasRequiredFields && hasValidVariants;
-}
+function validateFact(fact: unknown): Fact | null {
+  if (!fact || typeof fact !== "object") return null;
+  const f = fact as Record<string, unknown>;
 
-function isValidProductsPayload(value: unknown): boolean {
-  if (!value || typeof value !== "object") return false;
-  const v = value as { products?: unknown };
-  return Array.isArray(v.products) && v.products.every(isValidProduct);
+  const category = typeof f.category === "string" ? f.category : "";
+  const label = typeof f.label === "string" ? f.label : "";
+  const value = typeof f.value === "string" ? f.value : "";
+  const confidence = typeof f.confidence === "number" ? f.confidence : -1;
+  const quote = typeof f.quote === "string" ? f.quote : "";
+
+  if (!VALID_CATEGORIES.has(category)) return null;
+  if (label.length === 0) return null;
+  if (value.length === 0) return null;
+  if (confidence < 0 || confidence > 1) return null;
+  const wordCount = quote.trim().split(/\s+/).filter(Boolean).length;
+  if (wordCount > 12) return null;
+
+  return { category, label, value, confidence, quote };
 }
 
 function detectMimeAndBuildDataUrl(raw: string): string {
@@ -366,14 +246,14 @@ Deno.serve(async (req: Request) => {
         content: [
           {
             type: "text",
-            text: "Extract all product and variant information visible in this image.",
+            text: "Extract all business facts visible in this image.",
           },
           { type: "image_url", image_url: { url: imageUrl } },
         ],
       },
     ],
-    temperature: 0.1,
-    max_tokens: 4096,
+    temperature: 0.2,
+    max_tokens: 2000,
   };
 
   let openRouterResp: Response;
@@ -390,7 +270,7 @@ Deno.serve(async (req: Request) => {
     });
   } catch (err) {
     console.error("OpenRouter fetch failed:", err);
-    return jsonResponse(500, { error: "Failed to reach OpenRouter" });
+    return jsonResponse(500, { error: "AI se connect nahi ho pa raha — thodi der baad try karein" });
   }
 
   if (!openRouterResp.ok) {
@@ -399,7 +279,7 @@ Deno.serve(async (req: Request) => {
       `OpenRouter non-200 (${openRouterResp.status}):`,
       errText.slice(0, 500)
     );
-    return jsonResponse(502, { error: "OpenRouter request failed" });
+    return jsonResponse(502, { error: "AI se data receive karne mein problem hui — dobara koshish karein" });
   }
 
   let completion: {
@@ -408,12 +288,12 @@ Deno.serve(async (req: Request) => {
   try {
     completion = await openRouterResp.json();
   } catch {
-    return jsonResponse(502, { error: "Invalid response from AI model" });
+    return jsonResponse(502, { error: "AI se data process karne mein problem hui — dobara koshish karein" });
   }
 
   const content = completion?.choices?.[0]?.message?.content;
   if (typeof content !== "string" || content.trim() === "") {
-    return jsonResponse(502, { error: "Invalid response from AI model" });
+    return jsonResponse(502, { error: "AI se data process karne mein problem hui — dobara koshish karein" });
   }
 
   let parsed: unknown;
@@ -421,12 +301,89 @@ Deno.serve(async (req: Request) => {
     parsed = extractJson(content);
   } catch (err) {
     console.error("JSON parse failed:", err, "raw:", content.slice(0, 500));
-    return jsonResponse(502, { error: "Invalid response from AI model" });
+    return jsonResponse(502, { error: "AI se data process karne mein problem hui — dobara koshish karein" });
   }
 
-  if (!isValidProductsPayload(parsed)) {
-    return jsonResponse(502, { error: "Invalid response from AI model" });
+  if (!parsed || typeof parsed !== "object") {
+    return jsonResponse(502, { error: "AI se data process karne mein problem hui — dobara koshish karein" });
   }
 
-  return jsonResponse(200, { data: parsed });
+  const root = parsed as Record<string, unknown>;
+  const businessName = typeof root.businessName === "string" ? root.businessName : "";
+  const rawFacts = Array.isArray(root.facts) ? root.facts : [];
+
+  const validFacts: Fact[] = rawFacts
+    .map(validateFact)
+    .filter((f): f is Fact => f !== null)
+    .slice(0, 25);
+
+  let facts: Fact[];
+  let warning: string | undefined;
+
+  if (validFacts.length === 0) {
+    facts = [];
+    warning = "Photo se kuch nahi mila — website URL se try karein";
+  } else {
+    facts = validFacts;
+  }
+
+  const factRows = facts.map((fact) => ({
+    tenant_id: tenantId,
+    category: fact.category,
+    label: fact.label,
+    value: fact.value,
+    confidence: fact.confidence,
+    status: "needs_review",
+    source_type: "photo_ocr",
+    source_ref: fact.quote,
+    linked_table: null,
+    linked_row_id: null,
+  }));
+
+  if (factRows.length > 0) {
+    const { error: factsError } = await supabase
+      .from("business_facts")
+      .insert(factRows);
+
+    if (factsError) {
+      console.error("Failed to insert business_facts:", factsError);
+      return jsonResponse(500, { error: "Facts save karne mein problem hui — dobara koshish karein" });
+    }
+  }
+
+  const { error: ledgerError } = await supabase.from("action_ledger").insert({
+    business_id: tenantId,
+    actor_type: "system",
+    tool_name: "extract_facts",
+    action: "auto_extract",
+    input_summary: `image=${parsedBody.image_url ? "url" : "base64"}, facts=${facts.length}`,
+    result_summary: `extracted ${facts.length} facts`,
+    status: "success",
+    autonomy_level: 0,
+    estimated_value_pkr: 0,
+    reversible: false,
+  });
+
+  if (ledgerError) {
+    console.error("action_ledger insert failed:", ledgerError);
+  }
+
+  const { error: auditError } = await supabase.from("audit_log").insert({
+    tenant_id: tenantId,
+    fact_id: null,
+    actor: tenantId,
+    action: "auto_extract",
+    old_value: null,
+    new_value: {
+      image_source: parsedBody.image_url ? "url" : "base64",
+      facts_count: facts.length,
+      source_type: "photo_ocr",
+    },
+  });
+
+  if (auditError) {
+    console.error("audit_log insert failed:", auditError);
+  }
+
+  return jsonResponse(200, { facts, businessName, warning });
 });
