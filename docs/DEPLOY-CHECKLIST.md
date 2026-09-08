@@ -1,4 +1,4 @@
-﻿# Deployment Checklist for munshee.pk
+# Deployment Checklist for munshee.pk
 
 Follow these steps in order. Each step is numbered and copy-paste ready.
 
@@ -247,6 +247,44 @@ Cloudflare will auto-create DNS records if `munshee.pk` is already on Cloudflare
 > *(Screenshot: [ ])*
 
 ---
+
+## 5.1 Re-scan Cron Secret (for UptimeRobot / external cron)
+
+The `re-scan-business` edge function supports an external cron trigger via the `cron-rescan` companion function.
+
+### Step 5.1.1 - Set the cron secret
+
+In Supabase Dashboard, go to **Edge Functions** -> **Secrets** and add:
+
+| Variable | Value |
+|----------|-------|
+| `RESCAN_CRON_SECRET` | A random 32-char string (e.g., generate with `openssl rand -hex 16`) |
+
+### Step 5.1.2 - UptimeRobot monitor URL
+
+Create a free UptimeRobot monitor:
+
+| Field | Value |
+|-------|-------|
+| **Monitor Type** | HTTP(s) |
+| **URL to Monitor** | `https://{your-project-ref}.supabase.co/functions/v1/cron-rescan` |
+| **Method** | GET |
+| **Custom Headers** | `X-Cron-Secret: {your-random-secret}` |
+| **Monitoring Interval** | Every 5 minutes (free tier limit) |
+
+Replace `{your-project-ref}` with your actual Supabase project reference ID.
+Replace `{your-random-secret}` with the value you set in Step 5.1.1.
+
+> **Why UptimeRobot?** Free tier allows 5-minute intervals. The edge function itself
+> checks the rescan schedule and only processes businesses that are actually due,
+> so frequent polling is harmless and ensures timely rescans.
+
+> **Cadence per plan:**
+> | Plan | Re-scan cadence |
+> |------|-------------|
+> | Free | Monthly |
+> | Starter | Weekly |
+> | Business / OS | Daily |
 
 ## Quick Reference
 

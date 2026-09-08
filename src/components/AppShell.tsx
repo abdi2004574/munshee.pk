@@ -4,6 +4,7 @@ import { NavLink } from "@/components/NavLink";
 import { Icon } from "@/components/Icon";
 import { LogoutButton } from "@/features/auth/LogoutButton";
 import { useActiveBusiness, useManagedBusinesses } from "@/hooks/usePlan";
+import { RescanBanner } from "@/features/rescan/RescanBanner";
 
 interface AppShellProps {
   children: ReactNode;
@@ -125,6 +126,8 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         )}
       </header>
+
+      <RescanBanner businessId={businessId} />
 
       <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
     </div>

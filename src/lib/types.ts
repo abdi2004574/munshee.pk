@@ -459,6 +459,31 @@ export interface Database {
           created_at?: string;
         };
       };
+      rescan_schedules: {
+        Row: {
+          id: string;
+          business_id: string;
+          cadence: string;
+          last_run_at: string | null;
+          next_run_at: string | null;
+          last_delta_count: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          business_id: string;
+          cadence: string;
+          last_run_at?: string | null;
+          next_run_at?: string | null;
+          last_delta_count?: number;
+        };
+        Update: {
+          cadence?: string;
+          last_run_at?: string | null;
+          next_run_at?: string | null;
+          last_delta_count?: number;
+        };
+      };
     };
   };
 }
@@ -666,6 +691,7 @@ export type ImportQueueItemInsert = Omit<
 > &
   Partial<Pick<ImportQueueItem, "id" | "created_at" | "updated_at">>;
 
+
 export type Business = Database["public"]["Tables"]["businesses"]["Row"];
 export type BusinessInsert = Database["public"]["Tables"]["businesses"]["Insert"];
 export type BusinessUpdate = Database["public"]["Tables"]["businesses"]["Update"];
@@ -708,3 +734,7 @@ export type ActionPackUpdate = Database["public"]["Tables"]["action_packs"]["Upd
 export type CreditLedger = Database["public"]["Tables"]["credit_ledger"]["Row"];
 export type CreditLedgerInsert = Database["public"]["Tables"]["credit_ledger"]["Insert"];
 export type CreditLedgerUpdate = Database["public"]["Tables"]["credit_ledger"]["Update"];
+
+export type RescanSchedule = Database["public"]["Tables"]["rescan_schedules"]["Row"];
+export type RescanScheduleInsert = Database["public"]["Tables"]["rescan_schedules"]["Insert"];
+export type RescanScheduleUpdate = Database["public"]["Tables"]["rescan_schedules"]["Update"];

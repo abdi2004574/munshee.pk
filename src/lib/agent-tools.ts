@@ -1,4 +1,4 @@
-// Agent tool registry — v4 architecture foundation
+// Agent tool registry - v4 architecture foundation
 // Each tool is a self-contained capability that:
 // 1. Checks the kill-switch before running
 // 2. Writes an action_ledger row for auditability
@@ -88,7 +88,7 @@ export const extractFactsTool: AgentTool<ExtractFactsInput, ExtractFactsOutput> 
         "blocked: kill-switch active",
         "failed"
       );
-      throw new Error("Agent kill-switch is active — extract_facts blocked");
+      throw new Error("Agent kill-switch is active â€” extract_facts blocked");
     }
 
     const autonomyLevel = await getLevel(businessId, "rescan");
@@ -172,7 +172,7 @@ export const askMunsheeTool: AgentTool<AskMunsheeInput, AskMunsheeOutput> = {
         "blocked: kill-switch active",
         "failed"
       );
-      throw new Error("Agent kill-switch is active — ask_munshee blocked");
+      throw new Error("Agent kill-switch is active â€” ask_munshee blocked");
     }
 
     const autonomyLevel = await getLevel(businessId, "digest");
@@ -187,7 +187,7 @@ export const askMunsheeTool: AgentTool<AskMunsheeInput, AskMunsheeOutput> = {
       throw new Error(`Insufficient autonomy level (${autonomyLevel}) for ask_munshee`);
     }
 
-    // Stub — real answer happens in edge functions via OpenRouter
+    // Stub â€” real answer happens in edge functions via OpenRouter
     const answer = "Ask Munshee is not yet wired to the LLM backend.";
 
     await writeLedgerEntry(
@@ -213,12 +213,93 @@ export const askMunsheeTool: AgentTool<AskMunsheeInput, AskMunsheeOutput> = {
 };
 
 // ============================================================================
+// Tool: rescan
+// Re-scans a business website to refresh facts
+// ============================================================================
+
+export interface RescanInput {
+  url?: string;
+}
+
+export interface RescanOutput {
+  facts: unknown[];
+  delta: { added: number; changed: number; removed: number; unchanged: number };
+  skipped: boolean;
+}
+
+export const rescanTool: AgentTool<RescanInput, RescanOutput> = {
+  name: "rescan",
+
+  async run(businessId, input) {
+    const killed = await isKilled(businessId);
+    if (killed) {
+      await writeLedgerEntry(
+        { businessId, actorType: "system" },
+        "rescan",
+        JSON.stringify(input).slice(0, 200),
+        "blocked: kill-switch active",
+        "failed"
+      );
+      throw new Error("Agent kill-switch is active â€” rescan blocked");
+    }
+
+    const autonomyLevel = await getLevel(businessId, "rescan");
+    if (autonomyLevel < 1) {
+      await writeLedgerEntry(
+        { businessId, actorType: "system", autonomyLevel },
+        "rescan",
+        JSON.stringify(input).slice(0, 200),
+        "blocked: autonomy level insufficient (need >=1)",
+        "failed"
+      );
+      throw new Error(`Insufficient autonomy level (${autonomyLevel}) for rescan`);
+    }
+
+    const body = input.url ? { url: input.url } : {};
+
+    const { data, error } = await supabase.functions.invoke("re-scan-business", {
+      body,
+    });
+
+    if (error) {
+      await writeLedgerEntry(
+        { businessId, actorType: "system", autonomyLevel },
+        "rescan",
+        JSON.stringify(input).slice(0, 200),
+        `error: ${error.message}`,
+        "failed"
+      );
+      throw new Error(`re-scan-business failed: ${error.message}`);
+    }
+
+    const result = data as RescanOutput;
+
+    await writeLedgerEntry(
+      { businessId, actorType: "system", autonomyLevel },
+      "rescan",
+      JSON.stringify(input).slice(0, 200),
+      `scanned: facts=${result.facts?.length ?? 0}, delta=${JSON.stringify(result.delta)}, skipped=${result.skipped}`,
+      "success",
+      0,
+      true
+    );
+
+    return result;
+  },
+
+  estimateCost(input) {
+    return input.url ? 1 : 0;
+  },
+};
+
+// ============================================================================
 // Registry
 // ============================================================================
 
 export const AGENT_TOOLS: Record<string, AgentTool<unknown, unknown>> = {
   extract_facts: extractFactsTool,
   ask_munshee: askMunsheeTool,
+  rescan: rescanTool,
 };
 
 export function getTool(name: string): AgentTool<unknown, unknown> | undefined {
