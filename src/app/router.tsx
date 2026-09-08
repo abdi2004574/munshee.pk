@@ -32,6 +32,7 @@ const LazyPublicProfilePage = lazy(() => import("@/features/public-profile/pages
 const LazyBillingPage = lazy(() => import("@/features/billing/pages/BillingPage").then(m => ({ default: m.BillingPage })));
 const LazyClientsPage = lazy(() => import("@/features/clients/pages/ClientsPage").then(m => ({ default: m.ClientsPage })));
 const LazyAdminPage = lazy(() => import("@/features/admin/pages/AdminPage").then(m => ({ default: m.AdminPage })));
+const LazyAdminEvalPage = lazy(() => import("@/features/admin/pages/AdminEvalPage").then(m => ({ default: m.AdminEvalPage })));
 
 function RouteSuspense({ children }: { children: React.ReactNode }) {
   return (
@@ -140,6 +141,7 @@ export const router = createBrowserRouter([
       { path: "billing", element: <RouteSuspense><LazyBillingPage /></RouteSuspense> },
       { path: "clients", element: <RouteSuspense><LazyClientsPage /></RouteSuspense> },
       { path: "admin", element: <RouteSuspense><LazyAdminPage /></RouteSuspense> },
+      { path: "admin/eval", element: <RouteSuspense><LazyAdminEvalPage /></RouteSuspense> },
     ],
   },
 ]);
