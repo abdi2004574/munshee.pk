@@ -1,10 +1,19 @@
-﻿import { test, expect } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
-const isCI = process.env.CI === 'true';
+async function requireSupabase() {
+  if (process.env.CI === 'true') {
+    test.skip(true, 'requires local Supabase dev stack');
+    return;
+  }
+  const resp = await fetch('http://localhost:54321/rest/v1/').catch(() => null);
+  if (!resp || !resp.ok) {
+    test.skip(true, 'Supabase not running at localhost:54321');
+  }
+}
 
 test.describe('Authentication flow', () => {
   test('signup redirects to dashboard (confirm-email OFF in dev)', async ({ page }) => {
-    test.skip(isCI, 'requires local Supabase dev stack');
+    await requireSupabase();
 
     const email = `test-auth-${Date.now()}@munshee.test`;
     const password = 'Test1234!';
@@ -15,7 +24,6 @@ test.describe('Authentication flow', () => {
     await page.getByLabel('Password').fill(password);
     await page.getByRole('button', { name: /create account/i }).click();
 
-    // With confirm-email OFF, Supabase returns a session and redirects to /dashboard
     await page.waitForURL(/\/dashboard/, { timeout: 15_000 });
     expect(page.url()).toContain('/dashboard');
   });
@@ -27,12 +35,11 @@ test.describe('Authentication flow', () => {
   });
 
   test('logout redirects to /login', async ({ page }) => {
-    test.skip(isCI, 'requires local Supabase dev stack');
+    await requireSupabase();
 
     const email = `test-logout-${Date.now()}@munshee.test`;
     const password = 'Test1234!';
 
-    // Sign up
     await page.goto('/signup');
     await page.getByLabel('Full name').fill('Logout Test');
     await page.getByLabel('Email').fill(email);
@@ -40,19 +47,17 @@ test.describe('Authentication flow', () => {
     await page.getByRole('button', { name: /create account/i }).click();
     await page.waitForURL(/\/dashboard/, { timeout: 15_000 });
 
-    // Logout
     await page.getByRole('button', { name: /sign out/i }).click();
     await page.waitForURL(/\/login/, { timeout: 10_000 });
     expect(page.url()).toContain('/login');
   });
 
   test('reload keeps session', async ({ page }) => {
-    test.skip(isCI, 'requires local Supabase dev stack');
+    await requireSupabase();
 
     const email = `test-reload-${Date.now()}@munshee.test`;
     const password = 'Test1234!';
 
-    // Sign up
     await page.goto('/signup');
     await page.getByLabel('Full name').fill('Reload Test');
     await page.getByLabel('Email').fill(email);
@@ -60,19 +65,17 @@ test.describe('Authentication flow', () => {
     await page.getByRole('button', { name: /create account/i }).click();
     await page.waitForURL(/\/dashboard/, { timeout: 15_000 });
 
-    // Reload
     await page.reload();
     await page.waitForLoadState('networkidle');
     expect(page.url()).toContain('/dashboard');
   });
 
   test('duplicate email shows friendly error', async ({ page }) => {
-    test.skip(isCI, 'requires local Supabase dev stack');
+    await requireSupabase();
 
     const email = `test-dup-${Date.now()}@munshee.test`;
     const password = 'Test1234!';
 
-    // First signup
     await page.goto('/signup');
     await page.getByLabel('Full name').fill('Dup Test');
     await page.getByLabel('Email').fill(email);
@@ -80,7 +83,6 @@ test.describe('Authentication flow', () => {
     await page.getByRole('button', { name: /create account/i }).click();
     await page.waitForTimeout(3_000);
 
-    // Second signup with same email
     await page.goto('/signup');
     await page.getByLabel('Full name').fill('Dup Test 2');
     await page.getByLabel('Email').fill(email);
@@ -88,7 +90,6 @@ test.describe('Authentication flow', () => {
     await page.getByRole('button', { name: /create account/i }).click();
     await page.waitForTimeout(3_000);
 
-    // Should show friendly error (not raw Supabase error)
     const errorText = await page.getByRole('alert').textContent();
     expect(errorText).toBeTruthy();
     expect(errorText!.toLowerCase()).toMatch(/registred|already|duplicate/);

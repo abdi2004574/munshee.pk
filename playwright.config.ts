@@ -1,4 +1,4 @@
-﻿import { defineConfig, devices } from '@playwright/test';
+import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
@@ -19,7 +19,7 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  webServer: {
+  webServer: process.env.PLAYWRIGHT_BASE_URL ? undefined : {
     command: 'pnpm dev',
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
