@@ -1,11 +1,23 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router";
 import { supabase } from "@/lib/supabase";
+import { t } from "@/i18n";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { Card } from "@/components/Card";
 import { loginSchema, validateForm } from "@/lib/validation";
 import { identifyUser } from "@/lib/analytics";
+
+function translateAuthError(error: string): string {
+  const lower = error.toLowerCase();
+  if (lower.includes("already registered")) {
+    return t("auth.errors.duplicate_email");
+  }
+  if (lower.includes("rate limit") || lower.includes("429")) {
+    return t("auth.errors.rate_limit");
+  }
+  return error;
+}
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -37,7 +49,7 @@ export function LoginPage() {
     setLoading(false);
 
     if (error) {
-      setError(error.message);
+      setError(translateAuthError(error.message));
       return;
     }
 
@@ -56,20 +68,20 @@ export function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-surface-muted px-4">
       <Card className="w-full max-w-md space-y-6 p-8">
         <div className="space-y-1">
-          <h1 className="text-2xl font-semibold text-ink">Sign in</h1>
-          <p className="text-sm text-ink-muted">Welcome back to Munshee.pk</p>
+          <h1 className="text-2xl font-semibold text-ink">{t("auth.login.title")}</h1>
+          <p className="text-sm text-ink-muted">{t("auth.login.subtitle")}</p>
         </div>
 
         <form onSubmit={onSubmit} noValidate className="space-y-4">
           <Input
-            label="Email"
+            label={t("auth.login.email")}
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             error={fieldErrors.email}
           />
           <Input
-            label="Password"
+            label={t("auth.login.password")}
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -89,18 +101,18 @@ export function LoginPage() {
               onChange={(e) => setRememberMe(e.target.checked)}
               className="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
             />
-            Remember me
+            {t("auth.login.remember_me")}
           </label>
 
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Signing in…" : "Sign in"}
+            {t("auth.login.submit")}
           </Button>
         </form>
 
         <p className="text-center text-sm text-ink-muted">
-          No account?{" "}
+          {t("auth.login.no_account")}{" "}
           <Link to="/signup" className="text-brand-600 hover:text-brand-700">
-            Create one
+            {t("auth.login.create_one")}
           </Link>
         </p>
       </Card>

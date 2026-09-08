@@ -1,11 +1,23 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router";
 import { supabase } from "@/lib/supabase";
+import { t } from "@/i18n";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { Card } from "@/components/Card";
 import { signupSchema, validateForm } from "@/lib/validation";
 import { identifyUser } from "@/lib/analytics";
+
+function translateAuthError(error: string): string {
+  const lower = error.toLowerCase();
+  if (lower.includes("already registered")) {
+    return t("auth.errors.duplicate_email");
+  }
+  if (lower.includes("rate limit") || lower.includes("429")) {
+    return t("auth.errors.rate_limit");
+  }
+  return error;
+}
 
 export function SignupPage() {
   const navigate = useNavigate();
@@ -46,7 +58,7 @@ export function SignupPage() {
     setLoading(false);
 
     if (error) {
-      setError(error.message);
+      setError(translateAuthError(error.message));
       return;
     }
 
@@ -66,16 +78,17 @@ export function SignupPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-surface-muted px-4">
         <Card className="w-full max-w-md space-y-4 p-8">
-          <h1 className="text-2xl font-semibold text-ink">Check your email</h1>
+          <h1 className="text-2xl font-semibold text-ink">
+            {t("auth.signup.check_email_title")}
+          </h1>
           <p className="text-sm text-ink-muted">
-            We sent a confirmation link to <strong>{email}</strong>. Follow it to
-            activate your account.
+            {t("auth.signup.check_email_message").replace("{email}", email)}
           </p>
           <Link
             to="/login"
             className="inline-block text-sm text-brand-600 hover:text-brand-700"
           >
-            Back to sign in
+            {t("auth.signup.back_to_signin")}
           </Link>
         </Card>
       </div>
@@ -86,27 +99,27 @@ export function SignupPage() {
     <div className="flex min-h-screen items-center justify-center bg-surface-muted px-4">
       <Card className="w-full max-w-md space-y-6 p-8">
         <div className="space-y-1">
-          <h1 className="text-2xl font-semibold text-ink">Create account</h1>
-          <p className="text-sm text-ink-muted">Get started with Munshee.pk</p>
+          <h1 className="text-2xl font-semibold text-ink">{t("auth.signup.title")}</h1>
+          <p className="text-sm text-ink-muted">{t("auth.signup.subtitle")}</p>
         </div>
 
         <form onSubmit={onSubmit} noValidate className="space-y-4">
           <Input
-            label="Full name"
+            label={t("auth.signup.full_name")}
             type="text"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             error={fieldErrors.full_name}
           />
           <Input
-            label="Email"
+            label={t("auth.signup.email")}
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             error={fieldErrors.email}
           />
           <Input
-            label="Password"
+            label={t("auth.signup.password")}
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -120,14 +133,14 @@ export function SignupPage() {
           )}
 
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Creating…" : "Create account"}
+            {loading ? t("auth.signup.creating") : t("auth.signup.submit")}
           </Button>
         </form>
 
         <p className="text-center text-sm text-ink-muted">
-          Already have an account?{" "}
+          {t("auth.signup.already_have_account")}{" "}
           <Link to="/login" className="text-brand-600 hover:text-brand-700">
-            Sign in
+            {t("auth.signup.sign_in_link")}
           </Link>
         </p>
       </Card>

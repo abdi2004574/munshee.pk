@@ -117,19 +117,50 @@
     "active_business": "Active business",
     "switch_success": "Business context switched"
   },
+  "auth": {
+    "signup": {
+      "title": "Create account",
+      "subtitle": "Get started with Munshee.pk",
+      "full_name": "Full name",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Create account",
+      "creating": "Creating…",
+      "already_have_account": "Already have an account?",
+      "sign_in_link": "Sign in",
+      "check_email_title": "Check your email",
+      "check_email_message": "We sent a confirmation link to {email}. Follow it to activate your account.",
+      "back_to_signin": "Back to sign in"
+    },
+    "login": {
+      "title": "Sign in",
+      "subtitle": "Welcome back to Munshee.pk",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Sign in",
+      "remember_me": "Remember me",
+      "no_account": "No account?",
+      "create_one": "Create one"
+    },
+    "errors": {
+      "duplicate_email": "Yeh email pehle se registred hai. Agar aap apna password bhool gaye hain, to 'Forgot password' use karein.",
+      "rate_limit": "Bohot ziyada attempts ho gaye hain. Thori der wait karein aur phir try karein.",
+      "invalid_credentials": "Ghalat email ya password"
+    }
+  },
   "errors": {
     "actions_exhausted": "Aapke mahine ke Actions khatam ho gaye",
     "actions_exhausted_modal": {
       "title": "Actions khatam ho gaye!",
       "message": "Aapke mahine ke Actions khatam ho gaye - agle month dobara milenge, ya Business plan lein.",
-      "celebration_title": "Aapne 150 Actions mein zabardast kaam kiya ðŸŽ‰",
+      "celebration_title": "Aapne 150 Actions mein zabardast kaam kiya ??",
       "celebration_message": "100 ka Pack Rs 800 load karein YA Starter lein (800 Actions + weekly re-scan, Rs 4,500).",
       "cta": "Business plan lein",
       "close": "Band karein"
     },
     "feature_cap_modal": {
       "title": "Feature limit poochni ho gayi",
-      "message": "Aapke plan mein is feature ki limit poochni ho gayi â€” upgrade karein.",
+      "message": "Aapke plan mein is feature ki limit poochni ho gayi — upgrade karein.",
       "feature_label": "Feature",
       "cta": "Upgrade karein",
       "close": "Band karein"
@@ -159,10 +190,11 @@
     "admin": "Admin",
     "billing": "Billing",
     "dashboard": "Dashboard",
-    "logout": "Logout",
+    "logout": "Sign out",
     "products": "Products",
     "orders": "Orders",
     "customers": "Customers",
     "settings": "Settings"
   }
 }
+

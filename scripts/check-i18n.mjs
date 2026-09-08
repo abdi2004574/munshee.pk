@@ -5,7 +5,7 @@ import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const localesDir = resolve(__dirname, "../src/i18n/locales");
-const locales = ["en", "ur", "en-PK"];
+const locales = ["en", "ur", "en-PK", "roman_ur"];
 
 function flattenKeys(obj, prefix = "") {
   const keys = new Set();
@@ -58,9 +58,9 @@ for (const locale of locales) {
 }
 
 if (hasErrors) {
-  console.error("\n❌ i18n check failed: missing translation keys.");
+  console.error("\n? i18n check failed: missing translation keys.");
   process.exit(1);
 } else {
-  console.log("\n✅ All locales have matching keys.");
+  console.log("\n? All locales have matching keys.");
   process.exit(0);
 }

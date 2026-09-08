@@ -1,5 +1,6 @@
-﻿import { useNavigate } from "react-router";
+import { useNavigate } from "react-router";
 import { supabase } from "@/lib/supabase";
+import { t } from "@/i18n";
 import { Button } from "@/components/Button";
 
 export function LogoutButton() {
@@ -12,7 +13,7 @@ export function LogoutButton() {
 
   return (
     <Button variant="secondary" onClick={onLogout}>
-      Sign out
+      {t("nav.logout")}
     </Button>
   );
 }

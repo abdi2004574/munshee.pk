@@ -117,6 +117,37 @@
     "active_business": "Active business",
     "switch_success": "Business context switched"
   },
+  "auth": {
+    "signup": {
+      "title": "Create account",
+      "subtitle": "Get started with Munshee.pk",
+      "full_name": "Full name",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Create account",
+      "creating": "Creating…",
+      "already_have_account": "Already have an account?",
+      "sign_in_link": "Sign in",
+      "check_email_title": "Check your email",
+      "check_email_message": "We sent a confirmation link to {email}. Follow it to activate your account.",
+      "back_to_signin": "Back to sign in"
+    },
+    "login": {
+      "title": "Sign in",
+      "subtitle": "Welcome back to Munshee.pk",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Sign in",
+      "remember_me": "Remember me",
+      "no_account": "No account?",
+      "create_one": "Create one"
+    },
+    "errors": {
+      "duplicate_email": "This email is already registered. If you forgot your password, use 'Forgot password'.",
+      "rate_limit": "Too many attempts. Please wait a moment and try again.",
+      "invalid_credentials": "Invalid email or password"
+    }
+  },
   "errors": {
     "actions_exhausted": "Aapke mahine ke Actions khatam ho gaye",
     "actions_exhausted_modal": {
@@ -159,10 +190,11 @@
     "admin": "Admin",
     "billing": "Billing",
     "dashboard": "Dashboard",
-    "logout": "Logout",
+    "logout": "Sign out",
     "products": "Products",
     "orders": "Orders",
     "customers": "Customers",
     "settings": "Settings"
   }
 }
+

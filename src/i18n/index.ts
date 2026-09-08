@@ -10,6 +10,7 @@ import type { Locale, TranslationMessages } from "./types";
 import en from "./locales/en.json";
 import ur from "./locales/ur.json";
 import enPK from "./locales/en-PK.json";
+import romanUr from "./locales/roman_ur.json";
 
 export type { Locale, TranslationMessages };
 
@@ -17,6 +18,7 @@ const messages: Record<Locale, Record<string, string>> = {
   en: flatten(en as Record<string, unknown>),
   ur: flatten(ur as Record<string, unknown>),
   "en-PK": flatten(enPK as Record<string, unknown>),
+  roman_ur: flatten(romanUr as Record<string, unknown>),
 };
 
 let currentLocale: Locale = "en";

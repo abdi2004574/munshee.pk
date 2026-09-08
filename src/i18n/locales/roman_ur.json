@@ -1,46 +1,46 @@
 {
   "common": {
-    "cancel": "Cancel",
-    "save": "Save",
-    "close": "Close",
-    "loading": "Loading...",
+    "cancel": "Cancel karein",
+    "save": "Save karein",
+    "close": "Band karein",
+    "loading": "Load ho raha hai...",
     "pricing": "Pricing",
-    "view_pricing": "View Pricing",
-    "go_to_billing": "Go to Billing",
+    "view_pricing": "Pricing dekhein",
+    "go_to_billing": "Billing par jayein",
     "confirm": "Confirm",
-    "back": "Back",
+    "back": "Wapas",
     "notifications": "Notifications",
-    "search": "Search",
-    "no_results": "No results found"
+    "search": "Search karein",
+    "no_results": "Koi result nahi mila"
   },
   "pricing": {
     "title": "Simple, transparent pricing",
-    "subtitle": "Pay monthly. Cancel anytime.",
+    "subtitle": "Mahina bharein. Kabhi bhi cancel karein.",
     "free": {
       "name": "Free",
       "price": "Rs 0",
-      "description": "Good for getting started",
+      "description": "Shuru karne ke liye acha",
       "features": ["50 actions/month", "Munshee.pk watermark", "Text extraction", "1 business", "Basic support"],
       "cta": "Muft shuru karein"
     },
     "starter": {
       "name": "Starter",
       "price": "Rs 5,000",
-      "description": "For small shops and solopreneurs",
+      "description": "Chhoti shops ke liye",
       "features": ["600 actions/month", "No watermark", "Text + vision extraction", "Ask Munshee Q&A", "WhatsApp export analysis", "Voice digest", "Reporting & export", "1 business"],
       "cta": "Plan chunein"
     },
     "business": {
       "name": "Business",
       "price": "Rs 9,000",
-      "description": "For experts managing multiple clients",
+      "description": "Experts ke liye jo multiple clients manage karte hain",
       "features": ["2500 actions/month", "No watermark", "All extraction types", "Client context switcher", "Ask Munshee Q&A", "WhatsApp export analysis", "Voice digest", "Reporting & export", "Up to 6 businesses", "Directory eligible"],
       "cta": "Plan chunein"
     },
     "popular": "Sab se popular",
     "free.cta": "Muft shuru karein",
     "paid.cta": "Plan chunein",
-    "feature.watermark": "Munshee.pk watermark on exports",
+    "feature.watermark": "Munshee.pk watermark exports par",
     "feature.ask_munshee": "Ask Munshee Q&A",
     "feature.wa_export": "WhatsApp export analysis",
     "feature.voice_digest": "Voice digest",
@@ -58,12 +58,12 @@
   },
   "billing": {
     "title": "Billing & Plans",
-    "current_plan": "Your current plan",
-    "actions_left": "Actions left",
-    "actions_used": "Actions used",
-    "renewal_date": "Renews on",
-    "plan_switcher": "Switch plan",
-    "select_plan": "Select a plan",
+    "current_plan": "Aapka current plan",
+    "actions_left": "Actions baki",
+    "actions_used": "Actions use kiye",
+    "renewal_date": "Renew date",
+    "plan_switcher": "Plan badlein",
+    "select_plan": "Plan chunein",
     "manual_pay": "Manual Payment",
     "payment_details": "Payment Details",
     "jazzcash": "JazzCash",
@@ -73,20 +73,20 @@
     "pending_confirmation": "Payment confirm ho ra hai - 24 ghante",
     "payment_account": "Payment Account",
     "no_account": "No payment account configured",
-    "switch_success": "Plan switch initiated",
+    "switch_success": "Plan switch shuru ho gaya",
     "pending_activation": "Subscription pending activation",
     "admin_granted": "Admin granted",
     "feature_caps": "Feature caps",
-    "action_packs": "Need more Actions?",
-    "pack_purchase": "Buy Pack",
-    "pack_activated": "Pack activated",
+    "action_packs": "Ziyada Actions chahiye?",
+    "pack_purchase": "Pack kharidein",
+    "pack_activated": "Pack activate ho gaya",
     "credit_ledger": "Credit history",
     "pack_100": "100 Actions",
     "pack_250": "250 Actions",
     "pack_500": "500 Actions",
     "per_month": "/month",
-    "validity_days": "days validity",
-    "no_credits": "No credits yet",
+    "validity_days": "din valid",
+    "no_credits": "Abhi tak koi credit nahi",
     "expires": "Expires"
   },
   "admin": {
@@ -103,15 +103,15 @@
     "activated": "Activated"
   },
   "clients": {
-    "title": "My Clients",
-    "add_client": "Add client",
-    "name_required": "Business name is required",
+    "title": "Mere Clients",
+    "add_client": "Client add karein",
+    "name_required": "Business name zaroori hai",
     "phone_optional": "Phone (optional)",
-    "create": "Create client",
+    "create": "Client banayein",
     "cancel": "Cancel",
-    "actions_left": "actions left",
+    "actions_left": "actions baki",
     "status": "Status",
-    "empty": "No clients yet",
+    "empty": "Abhi tak koi client nahi",
     "limit_reached": "Aap 6 clients tak hi add kar sakte hain - Business plan karo.",
     "switch_context": "Switch",
     "active_business": "Active business",
@@ -125,7 +125,7 @@
       "email": "Email",
       "password": "Password",
       "submit": "Create account",
-      "creating": "Creating…",
+      "creating": "Creatingâ€¦",
       "already_have_account": "Already have an account?",
       "sign_in_link": "Sign in",
       "check_email_title": "Check your email",
@@ -143,9 +143,9 @@
       "create_one": "Create one"
     },
     "errors": {
-      "duplicate_email": "This email is already registered. If you forgot your password, use 'Forgot password'.",
-      "rate_limit": "Too many attempts. Please wait a moment and try again.",
-      "invalid_credentials": "Invalid email or password"
+      "duplicate_email": "Yeh email pehle se registred hai. Agar aap apna password bhool gaye hain, to 'Forgot password' use karein.",
+      "rate_limit": "Bohot ziyada attempts ho gaye hain. Thori der wait karein aur phir try karein.",
+      "invalid_credentials": "Ghalat email ya password"
     }
   },
   "errors": {
@@ -153,23 +153,23 @@
     "actions_exhausted_modal": {
       "title": "Actions khatam ho gaye!",
       "message": "Aapke mahine ke Actions khatam ho gaye - agle month dobara milenge, ya Business plan lein.",
-      "celebration_title": "Aapne 150 Actions mein zabardast kaam kiya ??",
+      "celebration_title": "Aapne 150 Actions mein zabardast kaam kiya ðŸŽ‰",
       "celebration_message": "100 ka Pack Rs 800 load karein YA Starter lein (800 Actions + weekly re-scan, Rs 4,500).",
       "cta": "Business plan lein",
       "close": "Band karein"
     },
     "feature_cap_modal": {
       "title": "Feature limit poochni ho gayi",
-      "message": "Aapke plan mein is feature ki limit poochni ho gayi — upgrade karein.",
+      "message": "Aapke plan mein is feature ki limit poochni ho gayi â€” upgrade karein.",
       "feature_label": "Feature",
       "cta": "Upgrade karein",
       "close": "Band karein"
     },
     "unauthorized": "Access denied",
-    "not_found": "Not found",
+    "not_found": "Nahi mila",
     "server_error": "Server error",
-    "plan_not_found": "Plan not found",
-    "subscription_not_found": "Subscription not found"
+    "plan_not_found": "Plan nahi mila",
+    "subscription_not_found": "Subscription nahi mili"
   },
   "watermark": {
     "text": "Made free with Munshee.pk",
@@ -177,13 +177,13 @@
   },
   "expert": {
     "teaser": "Aap freelancer hain? Munshee se apne clients ko manage karein - details jald.",
-    "more_info": "More info coming soon"
+    "more_info": "Jald aarahi hai"
   },
   "landing": {
     "pricing_strip_title": "Simple, transparent pricing",
-    "pricing_strip_subtitle": "Pay monthly. Cancel anytime.",
-    "view_all_plans": "View all plans",
-    "expert_section": "For experts and freelancers"
+    "pricing_strip_subtitle": "Mahina bharein. Kabhi bhi cancel karein.",
+    "view_all_plans": "Saare plans dekhein",
+    "expert_section": "Experts aur freelancers ke liye"
   },
   "nav": {
     "clients": "Clients",
@@ -197,4 +197,3 @@
     "settings": "Settings"
   }
 }
-
