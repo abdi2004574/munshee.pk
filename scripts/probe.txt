@@ -1,7 +1,0 @@
-{
-  "pricing": {
-    "title": "Simple, transparent pricing",
-    "popular": "Most popular",
-    "quote": "they'll"
-  }
-}

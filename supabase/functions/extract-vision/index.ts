@@ -129,7 +129,7 @@ async function enforceAction(
     return { ok: false, status: 500, body: { error: "action_check_failed", message: error.message } };
   }
 
-  const result = data as { ok: boolean; actions_left: number; subscription_status: string } | null;
+  const result = data?.[0] as { ok: boolean; actions_left: number; subscription_status: string } | null;
 
   if (!result || !result.ok) {
     return {
@@ -177,7 +177,7 @@ Deno.serve(async (req: Request) => {
     return jsonResponse(405, { error: "Method not allowed" });
   }
 
-  const apiKey = Deno.env.get("OPENROUTER_API_KEY");
+  const apiKey = Deno.env.get("open-router") || Deno.env.get("OPENROUTER_API_KEY");
   if (!apiKey) {
     return jsonResponse(500, { error: "OpenRouter API key not configured" });
   }

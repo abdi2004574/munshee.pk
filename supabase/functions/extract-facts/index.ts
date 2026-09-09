@@ -8,7 +8,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "https://esm.sh/zod@3.23.8";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
-const OPENROUTER_MODEL = "meta-llama/llama-3.3-70b";
+const OPENROUTER_MODEL = "meta-llama/llama-3.3-70b-instruct";
 
 const SYSTEM_PROMPT = `You extract structured business facts from raw website text of small Pakistani businesses. Output ONLY valid JSON:
 {"businessName":"...","facts":[{"category":"...","label":"...","value":"...","confidence":0.0,"quote":"..."}]}
@@ -88,7 +88,7 @@ async function enforceAction(
     return { ok: false, status: 500, body: { error: "action_check_failed", message: error.message } };
   }
 
-  const result = data as { ok: boolean; actions_left: number; subscription_status: string } | null;
+  const result = data?.[0] as { ok: boolean; actions_left: number; subscription_status: string } | null;
 
   if (!result || !result.ok) {
     return {
@@ -97,7 +97,7 @@ async function enforceAction(
       body: {
         code: "ACTIONS_EXHAUSTED",
         error: "actions_exhausted",
-        message: "Aapke mahine ke Actions khatam ho gaye — agle month dobara milenge, ya Business plan lein.",
+        message: "Aapke mahine ke Actions khatam ho gaye ï¿½ agle month dobara milenge, ya Business plan lein.",
         actionsLeft: result?.actions_left ?? 0,
         subscriptionStatus: result?.subscription_status ?? "unknown",
       },
@@ -164,7 +164,7 @@ Deno.serve(async (req: Request) => {
     return jsonResponse(405, { error: "Method not allowed" });
   }
 
-  const apiKey = Deno.env.get("OPENROUTER_API_KEY");
+  const apiKey = Deno.env.get("open-router") || Deno.env.get("OPENROUTER_API_KEY");
   if (!apiKey) {
     return jsonResponse(500, { error: "OpenRouter API key not configured" });
   }
@@ -226,7 +226,7 @@ Deno.serve(async (req: Request) => {
   ) {
     return jsonResponse(400, {
       error: "social_blocked",
-      message: "Facebook aur Instagram ke links abhi support nahi hain — photo upload ya website URL try karein.",
+      message: "Facebook aur Instagram ke links abhi support nahi hain ï¿½ photo upload ya website URL try karein.",
     });
   }
 
@@ -269,11 +269,11 @@ Deno.serve(async (req: Request) => {
     }
   } catch (err) {
     console.error("Fetch error:", err);
-    return jsonResponse(502, { error: "Website tak nahi pohanch sake — dobara koshish karein?" });
+    return jsonResponse(502, { error: "Website tak nahi pohanch sake ï¿½ dobara koshish karein?" });
   }
 
   if (!html || textLen === 0) {
-    return jsonResponse(502, { error: "Website se kuch nahi mila — photos se try karein" });
+    return jsonResponse(502, { error: "Website se kuch nahi mila ï¿½ photos se try karein" });
   }
 
   const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
@@ -325,18 +325,18 @@ Deno.serve(async (req: Request) => {
     if (!openRouterResp.ok) {
       const errText = await openRouterResp.text().catch(() => "");
       console.error(`OpenRouter non-200 (${openRouterResp.status}):`, errText.slice(0, 500));
-      return jsonResponse(502, { error: "AI se data receive karne mein problem hui — dobara koshish karein" });
+      return jsonResponse(502, { error: "AI se data receive karne mein problem hui â€” dobara koshish karein" });
     }
 
     completion = await openRouterResp.json();
   } catch (err) {
     console.error("OpenRouter fetch failed:", err);
-    return jsonResponse(500, { error: "AI se connect nahi ho pa raha — thodi der baad try karein" });
+    return jsonResponse(500, { error: "AI se connect nahi ho pa raha ï¿½ thodi der baad try karein" });
   }
 
   const content = completion?.choices?.[0]?.message?.content;
   if (typeof content !== "string" || content.trim() === "") {
-    return jsonResponse(502, { error: "AI se data process karne mein problem hui — dobara koshish karein" });
+    return jsonResponse(502, { error: "AI se data process karne mein problem hui ï¿½ dobara koshish karein" });
   }
 
   let parsed: unknown;
@@ -344,11 +344,11 @@ Deno.serve(async (req: Request) => {
     parsed = extractJson(content);
   } catch (err) {
     console.error("JSON parse failed:", err, "raw:", content.slice(0, 500));
-    return jsonResponse(502, { error: "AI se data process karne mein problem hui — dobara koshish karein" });
+    return jsonResponse(502, { error: "AI se data process karne mein problem hui ï¿½ dobara koshish karein" });
   }
 
   if (!parsed || typeof parsed !== "object") {
-    return jsonResponse(502, { error: "AI se data process karne mein problem hui — dobara koshish karein" });
+    return jsonResponse(502, { error: "AI se data process karne mein problem hui ï¿½ dobara koshish karein" });
   }
 
   const root = parsed as Record<string, unknown>;
@@ -365,7 +365,7 @@ Deno.serve(async (req: Request) => {
 
   if (validFacts.length === 0) {
     facts = [];
-    warning = "Website se kuch nahi mila — photos se try karein";
+    warning = "Website se kuch nahi mila ï¿½ photos se try karein";
   } else {
     facts = validFacts;
   }
@@ -390,7 +390,7 @@ Deno.serve(async (req: Request) => {
 
     if (factsError) {
       console.error("Failed to insert business_facts:", factsError);
-      return jsonResponse(500, { error: "Facts save karne mein problem hui — dobara koshish karein" });
+      return jsonResponse(500, { error: "Facts save karne mein problem hui ï¿½ dobara koshish karein" });
     }
   }
 

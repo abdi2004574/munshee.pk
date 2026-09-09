@@ -43,5 +43,13 @@
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.3",
     "vite": "^6.4.3"
-  }
+  },
+  "description": "Pakistan's first Business Brain OS � an AI-driven operating system for online sellers that extracts, verifies, and publishes business facts.",
+  "main": "postcss.config.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
 }

@@ -49,3 +49,7 @@ One task = one commit. Suggest: feat|fix|refactor(scope): description.Never bund
 FORBIDDEN — automatic failure
 ❌ npm packages without asking first ❌ touching files outside task❌ removing validation/error-handling to pass ❌ client-side LLM calls❌ skipping any i18n file ❌ Gemini ❌ inventing hex/colors outsidetailwind.config.js ❌ mock data where real pipeline is specified❌ auto-send/autonomous customer actions beyond autonomy_settings level
 
+## TEST DATA RULE
+Never TRUNCATE/DELETE existing business_facts or any real data during
+testing. Test extractions go to a dedicated test tenant/business
+(prefix 'TEST-'). Production data is immutable to test runs.

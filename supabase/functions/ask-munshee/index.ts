@@ -7,7 +7,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "https://esm.sh/zod@3.23.8";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
-const OPENROUTER_MODEL = "meta-llama/llama-3.3-70b";
+const OPENROUTER_MODEL = "meta-llama/llama-3.3-70b-instruct";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -63,7 +63,7 @@ async function enforceAction(
     return { ok: false, status: 500, body: { error: "action_check_failed", message: error.message } };
   }
 
-  const result = data as { ok: boolean; actions_left: number; code?: string; feature?: string; subscription_status?: string } | null;
+  const result = data?.[0] as { ok: boolean; actions_left: number; code?: string; feature?: string; subscription_status?: string } | null;
 
   if (!result || !result.ok) {
     const code = result?.code ?? "ACTIONS_EXHAUSTED";
@@ -75,8 +75,8 @@ async function enforceAction(
         code,
         error: code === "FEATURE_CAP" ? "feature_cap" : "actions_exhausted",
         message: code === "FEATURE_CAP"
-          ? `Aapke plan mein ${feature} ki limit poochni ho gayi — upgrade karein.`
-          : "Aapke mahine ke Actions khatam ho gaye — agle month dobara milenge, ya Business plan lein.",
+          ? `Aapke plan mein ${feature} ki limit poochni ho gayi ï¿½ upgrade karein.`
+          : "Aapke mahine ke Actions khatam ho gaye ï¿½ agle month dobara milenge, ya Business plan lein.",
         feature,
         actionsLeft: result?.actions_left ?? 0,
         subscriptionStatus: result?.subscription_status ?? "unknown",
@@ -203,7 +203,7 @@ Deno.serve(async (req: Request) => {
     (facts as BusinessFactRow[] | null) ?? []
   );
 
-  const apiKey = Deno.env.get("OPENROUTER_API_KEY");
+  const apiKey = Deno.env.get("open-router") || Deno.env.get("OPENROUTER_API_KEY");
   if (!apiKey) {
     return jsonResponse(500, { error: "OpenRouter API key not configured" });
   }
