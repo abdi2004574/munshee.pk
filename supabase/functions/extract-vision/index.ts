@@ -351,18 +351,20 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  const { error: ledgerError } = await supabase.from("action_ledger").insert({
-    business_id: tenantId,
-    actor_type: "system",
-    tool_name: "extract_facts",
-    action: "auto_extract",
-    input_summary: `image=${parsedBody.image_url ? "url" : "base64"}, facts=${facts.length}`,
-    result_summary: `extracted ${facts.length} facts`,
-    status: "success",
-    autonomy_level: 0,
-    estimated_value_pkr: 0,
-    reversible: false,
-  });
+  // Use the dedicated RPC for vision extraction logging (avoids schema mismatch)
+  const { error: ledgerError, data: ledgerId } = await supabase.rpc(
+    "log_vision_extraction",
+    {
+      p_business_id: tenantId,
+      p_actor_type: "system",
+      p_input_summary: `image=${parsedBody.image_url ? "url" : "base64"}, facts=${facts.length}`,
+      p_result_summary: `extracted ${facts.length} facts`,
+      p_status: "success",
+      p_autonomy_level: 0,
+      p_estimated_value_pkr: 0,
+      p_reversible: false,
+    }
+  );
 
   if (ledgerError) {
     console.error("action_ledger insert failed:", ledgerError);

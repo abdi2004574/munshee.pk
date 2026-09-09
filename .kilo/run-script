@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# Agent Manager run script for munshee.pk worktrees
+# Starts the Vite dev server for the selected worktree
+
+set -euo pipefail
+
+WORKTREE_PATH="${WORKTREE_PATH:-$(pwd)}"
+REPO_PATH="${REPO_PATH:-$(git rev-parse --show-toplevel 2>/dev/null || echo "$WORKTREE_PATH")}"
+
+echo "=== Munshee.pk Worktree Run ==="
+echo "Worktree: $WORKTREE_PATH"
+echo "Repo:     $REPO_PATH"
+
+# Ensure dependencies are installed
+if [ ! -d "$WORKTREE_PATH/node_modules" ]; then
+    echo "Installing dependencies first..."
+    cd "$WORKTREE_PATH"
+    if command -v pnpm >/dev/null 2>&1; then
+        pnpm install --frozen-lockfile 2>/dev/null || pnpm install
+    fi
+fi
+
+# Ensure Supabase is running
+if command -v supabase >/dev/null 2>&1; then
+    supabase status >/dev/null 2>&1 || {
+        echo "Starting Supabase..."
+        cd "$WORKTREE_PATH"
+        supabase start 2>/dev/null || true
+    }
+fi
+
+# Start Vite dev server
+echo "Starting Vite dev server..."
+cd "$WORKTREE_PATH"
+
+# Use a port derived from the worktree path to avoid conflicts
+PORT=$(echo "$WORKTREE_PATH" | cksum | cut -d' ' -f1)
+PORT=$(( (PORT % 10000) + 3000 ))
+
+if command -v pnpm >/dev/null 2>&1; then
+    exec pnpm dev --port $PORT
+elif command -v npm >/dev/null 2>&1; then
+    exec npm run dev -- --port $PORT
+else
+    echo "ERROR: No package manager found"
+    exit 1
+fi

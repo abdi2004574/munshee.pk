@@ -57,11 +57,11 @@ export function AdminPage() {
 
   async function handleActivatePack(subscriptionId: string) {
     if (!creditAmount.trim()) {
-      toast.error("Enter credit amount");
+      toast.error(t("admin_ext.credit_amount_required"));
       return;
     }
     if (!expiresAt) {
-      toast.error("Enter expiry date");
+      toast.error(t("admin_ext.expiry_date_required"));
       return;
     }
     try {
@@ -75,7 +75,7 @@ export function AdminPage() {
       setCreditAmount("");
       setExpiresAt("");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed");
+      toast.error(err instanceof Error ? err.message : t("common.failed"));
     }
   }
 
@@ -84,7 +84,7 @@ export function AdminPage() {
       await activate.mutateAsync({ subscriptionId, planId });
       toast.success(t("admin.activate_success"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed");
+      toast.error(err instanceof Error ? err.message : t("common.failed"));
     }
   }
 
@@ -110,8 +110,8 @@ export function AdminPage() {
                   <th className="pb-2 font-medium">{t("admin.business_id")}</th>
                   <th className="pb-2 font-medium">{t("admin.status")}</th>
                   <th className="pb-2 font-medium">{t("admin.created_at")}</th>
-                  <th className="pb-2 font-medium">Reference</th>
-                  <th className="pb-2 font-medium">Action</th>
+                   <th className="pb-2 font-medium">{t("admin_ext.reference")}</th>
+                   <th className="pb-2 font-medium">{t("admin_ext.action")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -130,27 +130,27 @@ export function AdminPage() {
                     </td>
                     <td className="py-3 text-ink-muted">{formatDate(payment.created_at)}</td>
                     <td className="py-3 font-mono text-xs text-ink-muted">
-                      {payment.reference_number || "—"}
+                      {payment.reference_number || t("admin_ext.no_reference")}
                     </td>
                     <td className="py-3">
                       {payment.plan_id.startsWith("pack_") ? (
                         activatingId === payment.id ? (
                           <div className="flex flex-col gap-2">
-                            <Input
-                              type="number"
-                              placeholder="Credits"
-                              value={creditAmount}
-                              onChange={(e) => setCreditAmount(e.target.value)}
-                              className="h-8 text-xs"
-                              label="Credit amount"
-                            />
-                            <Input
-                              type="date"
-                              value={expiresAt}
-                              onChange={(e) => setExpiresAt(e.target.value)}
-                              className="h-8 text-xs"
-                              label="Expiry date"
-                            />
+                <Input
+                  type="number"
+                  placeholder={t("admin_ext.credits")}
+                  value={creditAmount}
+                  onChange={(e) => setCreditAmount(e.target.value)}
+                  className="h-8 text-xs"
+                  label={t("admin_ext.credits")}
+                />
+                <Input
+                  type="date"
+                  value={expiresAt}
+                  onChange={(e) => setExpiresAt(e.target.value)}
+                  className="h-8 text-xs"
+                  label={t("admin_ext.expiry_date")}
+                />
                             <div className="flex gap-1">
                               <Button
                                 onClick={() => handleActivatePack(payment.id)}

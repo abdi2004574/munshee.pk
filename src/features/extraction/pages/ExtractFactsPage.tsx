@@ -1,5 +1,6 @@
 import { useState, useEffect, type ChangeEvent } from "react";
 import { useNavigate } from "react-router";
+import { t } from "@/i18n";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
@@ -9,6 +10,10 @@ import { useCreateAuditLog } from "@/features/audit/hooks";
 import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
 import { scrapeSchema, validateForm } from "@/lib/validation";
+
+function interpolate(template: string, values: Record<string, string | number>): string {
+  return template.replace(/\{(\w+)\}/g, (_, key) => String(values[key] ?? ""));
+}
 
 function isSocialHost(url: string): boolean {
   try {
@@ -31,13 +36,14 @@ interface FactsResultProps {
   facts: Fact[];
   businessName: string;
   warning?: string;
+  t: (key: string, fallback?: string) => string;
 }
 
-function FactsResult({ facts, businessName, warning }: FactsResultProps) {
+function FactsResult({ facts, businessName, warning, t }: FactsResultProps) {
   if (facts.length === 0 && !warning) {
     return (
       <Card className="p-6">
-        <p className="text-sm text-ink-muted">No facts extracted from this website.</p>
+        <p className="text-sm text-ink-muted">{t("extraction.website.no_facts")}</p>
       </Card>
     );
   }
@@ -75,7 +81,7 @@ function FactsResult({ facts, businessName, warning }: FactsResultProps) {
                 </div>
                 <p className="text-sm text-ink-muted">{fact.value}</p>
                 <div className="flex items-center gap-3 text-xs text-ink-muted">
-                  <span>Confidence: {Math.round(fact.confidence)}%</span>
+                  <span>{interpolate(t("extraction.common.confidence"), { percent: Math.round(fact.confidence) })}</span>
                 </div>
                 {fact.quote && (
                   <p className="text-xs text-ink-muted italic">"{fact.quote}"</p>
@@ -111,7 +117,7 @@ export function ExtractFactsPage() {
       toast.error(
         extract.error instanceof Error
           ? extract.error.message
-          : "Kuch ghalat ho gaya � dobara koshish karein",
+          : t("extraction.website.error_generic"),
       );
     }
   }, [extract.isError, extract.error, toast]);
@@ -130,7 +136,7 @@ export function ExtractFactsPage() {
 
     if (isSocialHost(parsed.data.url)) {
       setFieldErrors({
-        url: "Facebook aur Instagram links abhi support nahi hain � photo upload ya website URL try karein.",
+        url: t("extraction.website.social_not_supported"),
       });
       return;
     }
@@ -138,7 +144,7 @@ export function ExtractFactsPage() {
     try {
       await extract.mutateAsync({ url: parsed.data.url.trim() });
     } catch {
-      toast.error("Kuch ghalat ho gaya � dobara koshish karein");
+      toast.error(t("extraction.website.error_generic"));
     }
   }
 
@@ -162,7 +168,7 @@ export function ExtractFactsPage() {
       navigate(`/apps/review`);
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Kuch ghalat ho gaya � dobara koshish karein",
+        err instanceof Error ? err.message : t("extraction.website.error_generic"),
       );
     } finally {
       setSaving(false);
@@ -172,46 +178,48 @@ export function ExtractFactsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-ink">Extract from website</h1>
+        <h1 className="text-2xl font-semibold text-ink">{t("extraction.website.title")}</h1>
         <p className="text-sm text-ink-muted">
-          Enter a merchant website URL to automatically extract business facts like name, contact, timings, delivery options, and more.
+          {t("extraction.website.description")}
         </p>
       </div>
 
       <Card className="space-y-4 p-6">
         <Input
-          label="Merchant website URL"
+          label={t("extraction.website.url_label")}
           value={url}
           onChange={onUrlChange}
-          placeholder="https://example.com"
+          placeholder={t("extraction.website.url_placeholder")}
           error={fieldErrors.url}
         />
 
         <div className="flex justify-end">
           <Button onClick={onExtract} disabled={!canExtract}>
-            {extract.isPending ? "Extracting�" : "Extract Facts"}
+            {extract.isPending ? t("extraction.website.extracting") : t("extraction.website.extract_button")}
           </Button>
         </div>
       </Card>
 
       {extract.isPending && (
         <Card className="p-6">
-          <p className="text-sm text-ink-muted">Extracting facts�</p>
+          <p className="text-sm text-ink-muted">{t("extraction.website.extracting_facts")}</p>
         </Card>
       )}
 
       {result && !extract.isPending && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-medium text-ink">Extracted facts ({facts.length})</h2>
+            <h2 className="text-lg font-medium text-ink">
+              {interpolate(t("extraction.website.extracted_facts"), { count: facts.length })}
+            </h2>
           </div>
 
-          <FactsResult facts={facts} businessName={businessName} warning={warning} />
+          <FactsResult facts={facts} businessName={businessName} warning={warning} t={t} />
 
           {facts.length > 0 && (
             <div className="flex justify-end">
               <Button onClick={onSaveToQueue} disabled={!canSave}>
-                {saving ? "Saving�" : "Save to Facts"}
+                {saving ? t("extraction.website.saving") : t("extraction.website.save_button")}
               </Button>
             </div>
           )}

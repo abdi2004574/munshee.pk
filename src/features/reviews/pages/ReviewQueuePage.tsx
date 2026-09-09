@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { Pagination } from "@/components/Pagination";
 import { Select } from "@/components/Select";
 import { useToast } from "@/components/Toast";
+import { t } from "@/i18n";
 import { supabase } from "@/lib/supabase";
 import type { Database } from "@/lib/types";
 
@@ -107,9 +108,9 @@ export function ReviewQueuePage() {
     setWorkingId(fact.id);
     try {
       await applyFactStatus(fact, "confirmed");
-      toast.success("Fact confirmed successfully.");
+      toast.success(t("reviews.confirmed"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to confirm fact");
+      toast.error(err instanceof Error ? err.message : t("reviews.confirm_failed"));
     } finally {
       setWorkingId(null);
     }
@@ -119,9 +120,9 @@ export function ReviewQueuePage() {
     setWorkingId(fact.id);
     try {
       await applyFactStatus(fact, "rejected");
-      toast.success("Fact rejected.");
+      toast.success(t("reviews.rejected"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to reject fact");
+      toast.error(err instanceof Error ? err.message : t("reviews.reject_failed"));
     } finally {
       setWorkingId(null);
     }
@@ -178,10 +179,13 @@ export function ReviewQueuePage() {
     setBatchWorking(false);
     if (failures.length > 0) {
       toast.error(
-        `Confirmed with ${failures.length} failure(s): ${failures.join("; ")}`,
+        t("reviews.confirmed_with_failures", undefined, {
+          count: failures.length,
+          failures: failures.join("; "),
+        }),
       );
     } else {
-      toast.success(`Confirmed ${targets.length} fact(s).`);
+      toast.success(t("reviews.confirmed_count", undefined, { count: targets.length }));
     }
   }
 
@@ -205,10 +209,13 @@ export function ReviewQueuePage() {
     setBatchWorking(false);
     if (failures.length > 0) {
       toast.error(
-        `Rejected with ${failures.length} failure(s): ${failures.join("; ")}`,
+        t("reviews.rejected_with_failures", undefined, {
+          count: failures.length,
+          failures: failures.join("; "),
+        }),
       );
     } else {
-      toast.success(`Rejected ${targets.length} fact(s).`);
+      toast.success(t("reviews.rejected_count", undefined, { count: targets.length }));
     }
   }
 
@@ -216,7 +223,7 @@ export function ReviewQueuePage() {
     () => [
       {
         key: "select",
-        header: "Select",
+        header: t("reviews.col_select"),
         render: (row) =>
           row.status === "needs_review" ? (
             <input
@@ -232,12 +239,12 @@ export function ReviewQueuePage() {
       },
       {
         key: "category",
-        header: "Category",
+        header: t("reviews.col_category"),
         render: (row) => <Badge variant="info">{row.category}</Badge>,
       },
       {
         key: "label",
-        header: "Label",
+        header: t("reviews.col_label"),
         render: (row) => (
           <span className="truncate block max-w-[200px]" title={row.label}>
             {row.label}
@@ -246,30 +253,30 @@ export function ReviewQueuePage() {
       },
       {
         key: "value",
-        header: "Value",
+        header: t("reviews.col_value"),
         render: (row) => (
           <span
             className="truncate block max-w-[300px]"
             title={row.value ?? ""}
           >
-            {row.value ?? "—"}
+             {row.value ?? t("reviews.no_value")}
           </span>
         ),
       },
       {
         key: "confidence",
-        header: "Confidence",
+        header: t("reviews.col_confidence"),
         render: (row) =>
           row.confidence != null ? `${Math.round(row.confidence * 100)}%` : "—",
       },
       {
         key: "source_type",
-        header: "Source",
+        header: t("reviews.col_source"),
         render: (row) => <Badge variant="default">{row.source_type}</Badge>,
       },
       {
         key: "source_ref",
-        header: "Source Ref",
+        header: t("reviews.col_source_ref"),
         render: (row) => {
           const text = row.source_ref ?? "";
           return (
@@ -277,21 +284,21 @@ export function ReviewQueuePage() {
               className="truncate block max-w-[200px]"
               title={text}
             >
-              {text.length > 50 ? `${text.slice(0, 50)}…` : text || "—"}
+               {text.length > 50 ? `${text.slice(0, 50)}…` : text || t("reviews.no_value")}
             </span>
           );
         },
       },
       {
         key: "status",
-        header: "Status",
+        header: t("reviews.col_status"),
         render: (row) => (
           <Badge variant={statusVariant(row.status)}>{row.status}</Badge>
         ),
       },
       {
         key: "actions",
-        header: "Actions",
+        header: t("reviews.col_actions"),
         render: (row) =>
           row.status === "needs_review" ? (
             <div className="flex items-center gap-2">
@@ -300,14 +307,14 @@ export function ReviewQueuePage() {
                 disabled={workingId === row.id}
                 onClick={() => handleApprove(row)}
               >
-                {workingId === row.id ? "Working…" : "Approve"}
+                   {workingId === row.id ? t("reviews.working") : t("reviews.approve")}
               </Button>
               <Button
-                variant="secondary"
-                disabled={workingId === row.id}
-                onClick={() => handleReject(row)}
-              >
-                Reject
+                   variant="secondary"
+                   disabled={workingId === row.id}
+                   onClick={() => handleReject(row)}
+                 >
+                   {t("reviews.reject")}
               </Button>
             </div>
           ) : (
@@ -321,36 +328,36 @@ export function ReviewQueuePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-ink">Review Queue</h1>
+      <h1 className="text-2xl font-semibold text-ink">{t("reviews.title")}</h1>
         <p className="text-sm text-ink-muted">
-          Review and confirm business facts before they are used.
+          {t("reviews.subtitle")}
         </p>
       </div>
 
       <Card className="p-4">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <Select
-            label="Category"
+            label={t("reviews.filter_category")}
             value={category}
             onChange={(v) => setParam("category", v)}
             options={[
-              { value: "", label: "All categories" },
-              { value: "products", label: "Products" },
-              { value: "customers", label: "Customers" },
-              { value: "operations", label: "Operations" },
-              { value: "policy", label: "Policy" },
-              { value: "general", label: "General" },
+              { value: "", label: t("reviews.filter_all_categories") },
+              { value: "products", label: t("reviews.category_products") },
+              { value: "customers", label: t("reviews.category_customers") },
+              { value: "operations", label: t("reviews.category_operations") },
+              { value: "policy", label: t("reviews.category_policy") },
+              { value: "general", label: t("reviews.category_general") },
             ]}
           />
           <Select
-            label="Status"
+            label={t("reviews.filter_status")}
             value={status}
             onChange={(v) => setParam("status", v)}
             options={[
-              { value: "", label: "All statuses" },
-              { value: "needs_review", label: "Needs Review" },
-              { value: "confirmed", label: "Confirmed" },
-              { value: "rejected", label: "Rejected" },
+              { value: "", label: t("reviews.filter_all_statuses") },
+              { value: "needs_review", label: t("reviews.status_needs_review") },
+              { value: "confirmed", label: t("reviews.status_confirmed") },
+              { value: "rejected", label: t("reviews.status_rejected") },
             ]}
           />
         </div>
@@ -358,19 +365,19 @@ export function ReviewQueuePage() {
 
       <Card className="flex flex-wrap items-center justify-between gap-3 p-3">
         <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 text-sm text-ink">
+            <label className="flex items-center gap-2 text-sm text-ink">
             <input
               type="checkbox"
-              aria-label="Select all visible reviewable facts"
+              aria-label={t("reviews.select_all")}
               checked={allVisibleSelected}
               onChange={toggleAllVisible}
               disabled={reviewablePaginated.length === 0}
               className="h-4 w-4 cursor-pointer rounded border-gray-300 text-brand-600 focus:ring-brand-500 disabled:cursor-not-allowed disabled:opacity-50"
             />
-            Select All
+            {t("reviews.select_all")}
           </label>
           <span className="text-sm text-ink-muted">
-            {selected.size} item{selected.size === 1 ? "" : "s"} selected
+            {t("reviews.selected_count", undefined, { count: selected.size })}
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -378,22 +385,22 @@ export function ReviewQueuePage() {
             variant="primary"
             disabled={batchWorking || selected.size === 0}
             onClick={handleBatchApprove}
-          >
-            {batchWorking ? "Working…" : "Approve Selected"}
-          </Button>
-          <Button
-            variant="secondary"
-            disabled={batchWorking || selected.size === 0}
-            onClick={handleBatchReject}
-          >
-            Reject Selected
-          </Button>
-          <Button
-            variant="secondary"
-            disabled={batchWorking || selected.size === 0}
-            onClick={() => setSelected(new Set())}
-          >
-            Clear
+            >
+              {batchWorking ? t("reviews.working") : t("reviews.approve_selected")}
+            </Button>
+            <Button
+              variant="secondary"
+              disabled={batchWorking || selected.size === 0}
+              onClick={handleBatchReject}
+            >
+              {t("reviews.reject_selected")}
+            </Button>
+            <Button
+              variant="secondary"
+              disabled={batchWorking || selected.size === 0}
+              onClick={() => setSelected(new Set())}
+            >
+              {t("reviews.clear")}
           </Button>
         </div>
       </Card>
@@ -404,9 +411,9 @@ export function ReviewQueuePage() {
           data={paginatedFacts}
           isLoading={isLoading}
           emptyState={
-            <EmptyState
-              title="No facts pending review"
-              description="Business facts that need confirmation will appear here."
+             <EmptyState
+              title={t("reviews.no_pending_title")}
+              description={t("reviews.no_pending_desc")}
             />
           }
         />

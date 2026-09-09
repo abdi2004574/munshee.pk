@@ -1,5 +1,6 @@
 import { useState, useEffect, type ChangeEvent } from "react";
 import { useNavigate } from "react-router";
+import { t } from "@/i18n";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
@@ -14,16 +15,21 @@ import type { BusinessFactInsert } from "@/features/facts/api";
 import type { Fact } from "../api";
 import { extractTextSchema, validateForm } from "@/lib/validation";
 
-interface FactsResultProps {
-  facts: Fact[];
+function interpolate(template: string, values: Record<string, string | number>): string {
+  return template.replace(/\{(\w+)\}/g, (_, key) => String(values[key] ?? ""));
 }
 
-function FactsResult({ facts }: FactsResultProps) {
+interface FactsResultProps {
+  facts: Fact[];
+  t: (key: string, fallback?: string) => string;
+}
+
+function FactsResult({ facts, t }: FactsResultProps) {
   if (facts.length === 0) {
     return (
       <Card className="p-6">
         <p className="text-sm text-ink-muted">
-          The extraction completed but no facts were found in the response.
+          {t("extraction.text.no_facts_found")}
         </p>
       </Card>
     );
@@ -52,7 +58,7 @@ function FactsResult({ facts }: FactsResultProps) {
                 </div>
                 <p className="text-sm text-ink-muted">{fact.value}</p>
                 <div className="flex items-center gap-3 text-xs text-ink-muted">
-                  <span>Confidence: {Math.round(fact.confidence)}%</span>
+                  <span>{interpolate(t("extraction.common.confidence"), { percent: Math.round(fact.confidence) })}</span>
                 </div>
                 {fact.quote && (
                   <p className="text-xs text-ink-muted italic">"{fact.quote}"</p>
@@ -167,39 +173,38 @@ export function ExtractTextPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-ink">Extract from text</h1>
+        <h1 className="text-2xl font-semibold text-ink">{t("extraction.text.title")}</h1>
         <p className="text-sm text-ink-muted">
-          Paste merchant copy, product descriptions, or website text. The AI will
-          extract structured business facts for you to review.
+          {t("extraction.text.description")}
         </p>
       </div>
 
       <Card className="space-y-4 p-6">
         <Textarea
-          label="Merchant text"
+          label={t("extraction.text.text_label")}
           value={text}
           onChange={onTextChange}
           rows={10}
           error={fieldErrors.text}
         />
         <Input
-          label="Context (optional)"
+          label={t("extraction.text.context_label")}
           value={context}
           onChange={(e) => setContext(e.target.value)}
-          placeholder="e.g. Source website URL or category hint"
+          placeholder={t("extraction.text.context_placeholder")}
           error={fieldErrors.context}
         />
 
         <div className="flex justify-end">
           <Button onClick={onExtract} disabled={!canExtract}>
-            {extract.isPending ? "Extracting…" : "Extract Facts"}
+            {extract.isPending ? t("extraction.text.extracting") : t("extraction.text.extract_button")}
           </Button>
         </div>
       </Card>
 
       {extract.isPending && (
         <Card className="p-6">
-          <p className="text-sm text-ink-muted">Extracting facts…</p>
+          <p className="text-sm text-ink-muted">{t("extraction.text.extracting_facts")}</p>
         </Card>
       )}
 
@@ -207,15 +212,15 @@ export function ExtractTextPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-medium text-ink">
-              Extracted facts ({facts.length})
+              {interpolate(t("extraction.text.extracted_facts"), { count: facts.length })}
             </h2>
           </div>
 
-          <FactsResult facts={facts} />
+          <FactsResult facts={facts} t={t} />
 
           <div className="flex justify-end">
             <Button onClick={onSaveToQueue} disabled={!canSave}>
-              {saving ? "Saving…" : "Save to Facts"}
+              {saving ? t("extraction.text.saving") : t("extraction.text.save_button")}
             </Button>
           </div>
         </div>

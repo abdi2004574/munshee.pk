@@ -64,6 +64,9 @@ test.describe('Agent Primitives (v4 architecture)', () => {
   });
 
   test.beforeEach(async () => {
+    // TEST DATA RULE: Assert test tenant guard before any delete
+    expect(userAId.startsWith('TEST-') || userAId.startsWith('agent-')).toBe(true);
+
     await clientA.from('action_ledger').delete().eq('business_id', userAId);
     await clientA.from('kill_switch').delete().eq('business_id', userAId);
     await clientA.from('autonomy_settings').delete().eq('business_id', userAId);

@@ -7,6 +7,7 @@
 
 import { supabase } from "@/lib/supabase";
 import { isKilled, getLevel } from "@/lib/autonomy-service";
+import { t } from "@/i18n";
 
 export interface AgentTool<Input = unknown, Output = unknown> {
   name: string;
@@ -187,14 +188,33 @@ export const askMunsheeTool: AgentTool<AskMunsheeInput, AskMunsheeOutput> = {
       throw new Error(`Insufficient autonomy level (${autonomyLevel}) for ask_munshee`);
     }
 
-    // Stub — real answer happens in edge functions via OpenRouter
-    const answer = "Ask Munshee is not yet wired to the LLM backend.";
+    // Call the real ask-munshee edge function (confirmed-facts grounding)
+    const { data, error } = await supabase.functions.invoke("ask-munshee", {
+      body: {
+        tenant_id: businessId,
+        question: input.question,
+      },
+    });
+
+    if (error) {
+      await writeLedgerEntry(
+        { businessId, actorType: "merchant", autonomyLevel },
+        "ask_munshee",
+        input.question.slice(0, 200),
+        `error: ${error.message}`,
+        "failed"
+      );
+      throw new Error(`ask-munshee failed: ${error.message}`);
+    }
+
+    const result = data as { answer: string } | null;
+    const answer = result?.answer ?? t("ask.no_answer");
 
     await writeLedgerEntry(
       { businessId, actorType: "merchant", autonomyLevel },
       "ask_munshee",
       input.question.slice(0, 200),
-      `stub: answered with ${answer.length} chars`,
+      `answered: ${answer.length} chars`,
       "success",
       0,
       false
@@ -203,7 +223,7 @@ export const askMunsheeTool: AgentTool<AskMunsheeInput, AskMunsheeOutput> = {
     return {
       answer,
       sources: [],
-      confidence: 0,
+      confidence: 0.8,
     };
   },
 

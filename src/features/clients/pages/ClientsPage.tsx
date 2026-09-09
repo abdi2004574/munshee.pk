@@ -47,7 +47,7 @@ export function ClientsPage() {
     return (
       <div className="flex min-h-[200px] items-center justify-center">
         <Card className="p-8 text-center">
-          <h2 className="text-lg font-semibold text-warning">Business Plan Required</h2>
+          <h2 className="text-lg font-semibold text-warning">{t("clients_ext.business_plan_required")}</h2>
           <p className="mt-2 text-sm text-ink-muted">{t("clients.limit_reached")}</p>
           <Button className="mt-4" onClick={() => navigate("/apps/billing")}>
             {t("common.go_to_billing")}
@@ -69,12 +69,12 @@ export function ClientsPage() {
     }
     try {
       await createClient.mutateAsync({ name: name.trim(), phone: phone.trim() || undefined });
-      toast.success("Client created");
+      toast.success(t("clients_ext.created"));
       setShowModal(false);
       setName("");
       setPhone("");
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed";
+      const msg = err instanceof Error ? err.message : t("common.failed");
       if (msg.includes("limit") || msg.includes("6")) {
         toast.error(t("clients.limit_reached"));
       } else {
@@ -117,8 +117,8 @@ export function ClientsPage() {
             return (
               <Card key={b.business_id} className={`p-4 ${isActive ? "border-brand-400 border-2" : ""}`}>
                 <div className="flex items-start justify-between">
-                  <h3 className="text-base font-semibold text-ink">{b.display_name || "Client"}</h3>
-                  {isActive && <Badge variant="success">Active</Badge>}
+              <h3 className="text-base font-semibold text-ink">{b.display_name || t("clients_ext.client")}</h3>
+               {isActive && <Badge variant="success">{t("clients_ext.active")}</Badge>}
                 </div>
                 <div className="mt-3">
                   <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
@@ -155,10 +155,10 @@ export function ClientsPage() {
             <h2 className="text-lg font-semibold text-ink">{t("clients.add_client")}</h2>
             <div className="mt-4 space-y-4">
               <Input
-                label="Business name"
+                label={t("clients_ext.business_name_label")}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Acme Store"
+                placeholder={t("clients_ext.business_name_placeholder")}
               />
               <Input
                 label={t("clients.phone_optional")}

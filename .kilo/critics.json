@@ -1,0 +1,44 @@
+{
+  "critics": [
+    {
+      "name": "code_critic",
+      "type": "grounded",
+      "full_context": true,
+      "checks": ["typecheck", "lint", "security", "design-system", "i18n", "accessibility"],
+      "timeout": 300000,
+      "agent": "critic"
+    },
+    {
+      "name": "test_critic",
+      "type": "grounded",
+      "full_context": true,
+      "checks": ["unit", "integration", "e2e", "coverage", "test-data-rule"],
+      "timeout": 600000,
+      "agent": "critic"
+    },
+    {
+      "name": "interaction_e2e",
+      "type": "ungrounded",
+      "full_context": false,
+      "checks": ["playwright", "visual", "navigation"],
+      "timeout": 600000,
+      "agent": "critic"
+    },
+    {
+      "name": "security_critic",
+      "type": "grounded",
+      "full_context": true,
+      "checks": ["rls", "sql-injection", "secrets", "input-validation", "tenant-isolation"],
+      "timeout": 300000,
+      "agent": "critic"
+    },
+    {
+      "name": "design_critic",
+      "type": "ungrounded",
+      "full_context": false,
+      "checks": ["design-system", "accessibility", "contrast", "responsive"],
+      "timeout": 300000,
+      "agent": "ux-reviewer"
+    }
+  ]
+}

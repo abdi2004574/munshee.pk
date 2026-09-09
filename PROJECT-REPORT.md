@@ -1,4 +1,4 @@
-﻿# ═══════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
 # MUNSHEE.PK — MASTER PROJECT REPORT (v4 — CORRECTED)
 # Source of truth for ALL AI sessions (Kilo / Claude / z.ai)
 # Last updated: 2026-09-09 | Verified by: founder (SQL evidence)
@@ -59,7 +59,7 @@
 - Persistence PROVEN: 117 rows in business_facts (all needs_review, all dated 2026-09-09, multi-day extraction runs)
 - Auth/provisioning: 25 profiles exist, 11 subscriptions auto-created on signup (all free/trial)
 - rescan_schedules table exists (0 rows = unused, normal)
-- comet-stranger orphaned business "My Business" (e794b5aa...) with no subscription (low priority cleanup)
+- Orch-stranger orphaned business "My Business" (e794b5aa...) with no subscription (low priority cleanup)
 
 ### 3.2 — EXTRACTION EVAL (5 real PK sites)
 - Precision: 52/52 = 100% (zero wrong, 15/15 quotes verbatim)
@@ -76,7 +76,7 @@
 
 **Migration 0022 is a NO-OP placeholder:**
 - 0022_schema_reconciliation.sql contains only `\` (1 byte). It does NOTHING.
-- Old state.md incorrectly attributed fixes to 0022. The actual fixes live in:
+- state.md incorrectly attributes fixes to 0022. The actual fixes live in:
   - 0020_locked_pricing.sql → reference_number, plans table, action_packs table
   - 0017_billing_core.sql → consume_action, subscription_status (OLD version, no subscription_status)
   - 0023_fix_credit_ledger → consume_action with subscription_status, credit_ledger reconciliation
@@ -108,7 +108,7 @@
 Status: FIXED / PENDING-0023b / PENDING-VERIFICATION / BACKLOG
 
 ### CRITICAL
-- 3.3 state.md NOT empty (was 44 lines) → CORRECTED in this report (v4)
+- 3.3 state.md NOT empty → CORRECTED in this report
 - 4.1 credit_ledger schema mismatch → FIXED in 0023, founder verification V1 PENDING
 - 4.2 consume_action missing subscription_status → FIXED in 0023 (NOT 0023b as v3 claimed), founder verification PENDING
 - 4.3 feature vocabulary divergence → PENDING 0023b (file on disk, needs push) + frontend vocab fix + constraint fix + re-scan edge function update
@@ -204,7 +204,7 @@ P5 SCALE: Tax-Ready module, marketplace flywheel, Roman Urdu fine-tune
 ## 🏁 NON-TECHNICAL SUMMARY (for founder / merchants / stakeholders)
 
 > **Munshee.pk ek aisi AI Business Manager hai jo aapki dukan ki saari jaankari
-> automatically nikaar sakti hai — website se, text se, photo se, aur even
+> automatically nikaal sakti hai — website se, text se, photo se, aur even
 > WhatsApp se. Yeh aapko facts verify karne ke liye deti hai, kabhi bina
 > soche directly kisi bhi cheez par kaam nahi karti.**
 
@@ -315,12 +315,12 @@ munshee.pk/
 │   │   ├── 0023b             # Vocabulary + log_vision_extraction (on disk, NOT pushed)
 │   │   └── 00070001          # Old naming, valid (deduct_tenant_credits RPC)
 │   └── functions/
-│       ├── extract-facts/    # Edge function (direct action_ledger.insert + consume_action)
+│       ├── extract-facts/    # Edge function (uses direct action_ledger.insert + consume_action)
 │       ├── extract-vision/   # ✓ Already uses log_vision_extraction RPC
-│       ├── re-scan-business/ # ⚠️ Uses "rescan" singular (mismatch with 0023b "rescans")
+│       ├── re-scan-business/ # ⚠️ Uses "rescan" singular (mismatch with 0023b)
 │       └── ask-munshee/      # Real implementation (NOT a stub)
 ├── e2e/
-│   ├── billing-gating.spec.ts    # ✓ Exists (test for consume_action, plans, RLS)
+│   ├── billing-gating.spec.ts    # ✓ Exists (report incorrectly called it billing-flow)
 │   ├── happy-path.spec.ts
 │   ├── auth.spec.ts
 │   ├── admin-eval.spec.ts
@@ -333,7 +333,7 @@ munshee.pk/
 │   ├── evidence/             # 7 evidence files (verified)
 │   ├── DEPLOY-CHECKLIST.md
 │   └── VISION.md             # LUMEN archived here
-├── state.md                  # ← THIS FILE (was 44 lines of inaccurate content — now replaced)
+├── state.md                  # ← THIS FILE (was empty per v3, actually 44 lines — now replaced)
 ├── agent.md                  # Agent rules (v2 FINAL)
 ├── AGENTS.md                 # Agent rules (12 lines — TEST DATA RULE, i18n, etc.)
 └── PROJECT-REPORT.md         # ← THIS FILE (v4 corrected)

@@ -16,7 +16,7 @@ function formatPrice(pkr: number): string {
 }
 
 function formatDate(iso: string | null): string {
-  if (!iso) return "�";
+  if (!iso) return "";
   try {
     return new Date(iso).toLocaleDateString("en-PK", {
       year: "numeric",
@@ -75,7 +75,7 @@ export function BillingPage() {
 
   function openPayment(plan: Plan) {
     if (plan.id === "free") {
-      toast.info("You are on the free plan");
+      toast.info(t("billing_ext.free_plan_message"));
       return;
     }
     setSelectedPlan(plan);
@@ -86,7 +86,7 @@ export function BillingPage() {
   async function submitPayment() {
     if (!selectedPlan || !businessId) return;
     if (!referenceNumber.trim()) {
-      toast.error("Please enter a reference number");
+      toast.error(t("billing_ext.reference_number_required"));
       return;
     }
     try {
@@ -98,7 +98,7 @@ export function BillingPage() {
       setConfirmation(true);
       toast.success(t("billing.pending_activation"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed");
+      toast.error(err instanceof Error ? err.message : t("common.failed"));
     }
   }
 
@@ -108,7 +108,7 @@ export function BillingPage() {
       await purchasePack.mutateAsync({ businessId, packSku });
       toast.success(t("billing.pack_activated"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed");
+      toast.error(err instanceof Error ? err.message : t("common.failed"));
     }
   }
 
@@ -147,7 +147,7 @@ export function BillingPage() {
           <div className="mt-2 flex items-baseline gap-3">
             <h2 className="text-2xl font-bold text-ink">{currentPlan.name}</h2>
             {isAdminGranted && <Badge variant="success">{t("billing.admin_granted")}</Badge>}
-            {isPending && <Badge variant="warning">Pending</Badge>}
+            {isPending && <Badge variant="warning">{t("billing_ext.pending")}</Badge>}
           </div>
           <div className="mt-4 space-y-2">
             <div className="flex items-center justify-between text-sm">
@@ -181,7 +181,7 @@ export function BillingPage() {
               <div key={key} className="flex items-center justify-between rounded-lg border border-gray-200 p-3">
                 <span className="text-sm text-ink-muted">{FEATURE_LABELS[key] || key}</span>
                 <Badge variant={(value === true || value === "unlimited") ? "success" : (typeof value === "number" && value > 0) ? "info" : "warning"}>
-                  {value === true ? "Included" : (value === "unlimited" ? "Unlimited" : String(value))}
+                  {value === true ? t("billing_ext.included") : (value === "unlimited" ? t("billing_ext.unlimited") : String(value))}
                 </Badge>
               </div>
             ))}
@@ -193,9 +193,9 @@ export function BillingPage() {
       {packs.length > 0 && (
         <Card id="action-packs" className="p-6">
           <h3 className="text-lg font-medium text-ink">{t("billing.action_packs")}</h3>
-          <p className="mt-1 text-sm text-ink-muted">
-            Need more Actions? Buy a pack and an admin will activate it.
-          </p>
+            <p className="mt-1 text-sm text-ink-muted">
+              {t("billing.action_packs")} {t("billing.action_packs_desc")}
+            </p>
           <div className="mt-4 grid gap-4 sm:grid-cols-3">
             {packs.map((pack) => (
               <Card key={pack.sku} className="flex flex-col p-5">
@@ -260,7 +260,7 @@ export function BillingPage() {
                 {formatPrice(plan.price_pkr)}
                 <span className="text-sm font-normal text-ink-muted">{t("billing.per_month")}</span>
               </p>
-              <p className="mt-1 text-xs text-ink-muted">{plan.actions_monthly} actions/month</p>
+              <p className="mt-1 text-xs text-ink-muted">{plan.actions_monthly} {t("billing_ext.actions_per_month")}</p>
               <div className="mt-auto pt-4">
                 <Button
                   className="w-full"
@@ -268,7 +268,7 @@ export function BillingPage() {
                   onClick={() => openPayment(plan)}
                   disabled={plan.id === currentPlan?.id || plan.id === "free"}
                 >
-                  {plan.id === "free" ? "Free" : plan.id === currentPlan?.id ? "Current" : t("billing.select_plan")}
+                  {plan.id === "free" ? t("billing_ext.free_plan_label") : plan.id === currentPlan?.id ? t("billing_ext.current_plan_label") : t("billing.select_plan")}
                 </Button>
               </div>
             </Card>
@@ -281,7 +281,7 @@ export function BillingPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <Card className="w-full max-w-md p-6">
             <h2 className="text-lg font-semibold text-ink">
-              {t("billing.manual_pay")} � {selectedPlan.name}
+              {t("billing.manual_pay")} — {selectedPlan.name}
             </h2>
             <p className="mt-2 text-sm text-ink-muted">
               {formatPrice(selectedPlan.price_pkr)} / month

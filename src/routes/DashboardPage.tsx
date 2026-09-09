@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import type { Profile, AppSettings } from "@/lib/types";
 import { Card } from "@/components/Card";
 import { SkeletonCard } from "@/components/Skeleton";
+import { t } from "@/i18n";
 
 function useCountQuery(
   key: string,
@@ -73,9 +74,9 @@ export function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-ink">Hello, {name}</h1>
+        <h1 className="text-2xl font-semibold text-ink">{t("dashboard.greeting")}{name}</h1>
         <p className="text-sm text-ink-muted">
-          Your dashboard is ready. Currency: {currency}.
+          {t("dashboard.ready")}{currency}.
         </p>
       </div>
 
@@ -89,49 +90,48 @@ export function DashboardPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="p-6">
-            <p className="text-sm text-ink-muted">Total Products</p>
+            <p className="text-sm text-ink-muted">{t("dashboard.total_products")}</p>
             <p className="text-3xl font-semibold text-ink">
               {totalProducts.data ?? 0}
             </p>
-            <p className="text-xs text-ink-muted">Active catalog items</p>
+            <p className="text-xs text-ink-muted">{t("dashboard.active_catalog")}</p>
           </Card>
           <Card className="p-6">
-            <p className="text-sm text-ink-muted">Total Orders</p>
+            <p className="text-sm text-ink-muted">{t("dashboard.total_orders")}</p>
             <p className="text-3xl font-semibold text-ink">
               {totalOrders.data ?? 0}
             </p>
-            <p className="text-xs text-ink-muted">All time</p>
+            <p className="text-xs text-ink-muted">{t("dashboard.all_time")}</p>
           </Card>
           <Card className="p-6">
-            <p className="text-sm text-ink-muted">Total Customers</p>
+            <p className="text-sm text-ink-muted">{t("dashboard.total_customers")}</p>
             <p className="text-3xl font-semibold text-ink">
               {totalCustomers.data ?? 0}
             </p>
-            <p className="text-xs text-ink-muted">Active contacts</p>
+            <p className="text-xs text-ink-muted">{t("dashboard.active_contacts")}</p>
           </Card>
           <Card className="p-6">
-            <p className="text-sm text-ink-muted">Pending Orders</p>
+            <p className="text-sm text-ink-muted">{t("dashboard.pending_orders")}</p>
             <p className="text-3xl font-semibold text-ink">
               {pendingOrders.data ?? 0}
             </p>
-            <p className="text-xs text-ink-muted">Awaiting fulfilment</p>
+            <p className="text-xs text-ink-muted">{t("dashboard.awaiting_fulfilment")}</p>
           </Card>
         </div>
       )}
 
       <Card className="p-6">
         <p className="text-sm text-ink-muted">
-          Phase 1.1 foundation is in place. Catalog, orders, inventory, and
-          automation features land in later phases.
+          {t("dashboard.phase_note")}
         </p>
       </Card>
 
       <Card className="p-6">
         <h2 className="text-lg font-semibold text-ink">
-          Share your profile
+          {t("dashboard.share_profile")}
         </h2>
         <p className="mt-1 text-sm text-ink-muted">
-          Share this link with customers to show your verified business profile.
+          {t("dashboard.share_hint")}
         </p>
         <div className="mt-4 flex items-center gap-2">
           <button
@@ -143,7 +143,7 @@ export function DashboardPage() {
             }}
             className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-on-primary shadow-sm hover:bg-primary-hover"
           >
-            Copy link
+            {t("dashboard.copy_link")}
           </button>
           <a
             href={`/profile/${profileQuery.data?.tenant_id}`}
@@ -151,7 +151,7 @@ export function DashboardPage() {
             rel="noopener noreferrer"
             className="text-sm font-medium text-primary underline-offset-2 hover:underline"
           >
-            View profile
+            {t("dashboard.view_profile")}
           </a>
         </div>
       </Card>

@@ -11,7 +11,9 @@
     "back": "Wapas",
     "notifications": "Notifications",
     "search": "Search karein",
-    "no_results": "Koi result nahi mila"
+    "no_results": "Koi result nahi mila",
+    "failed": "Fail ho gaya",
+    "toggle_menu": "Menu kholein"
   },
   "pricing": {
     "title": "Simple, transparent pricing",
@@ -21,7 +23,7 @@
       "price": "Rs 0",
       "description": "Shuru karne ke liye acha",
       "features": [
-        "50 actions/month",
+        "150 actions/month",
         "Munshee.pk watermark",
         "Text extraction",
         "1 business",
@@ -73,7 +75,7 @@
     "feature.client_switcher": "Client context switcher",
     "feature.reporting": "Reporting & export",
     "feature.directory": "Public directory listing",
-    "actions.free": "50 actions/month",
+    "actions.free": "150 actions/month",
     "actions.starter": "800 actions/month",
     "actions.business": "2000 actions/month",
     "businesses.free": "1 business",
@@ -126,6 +128,7 @@
     "admin_granted": "Admin granted",
     "feature_caps": "Feature caps",
     "action_packs": "Ziyada Actions chahiye?",
+    "action_packs_desc": "Ek pack kharidein aur admin isay activate karega.",,
     "pack_purchase": "Pack kharidein",
     "pack_activated": "Pack activate ho gaya",
     "credit_ledger": "Credit history",
@@ -192,7 +195,7 @@
       "create_one": "Create one"
     },
     "errors": {
-      "duplicate_email": "Yeh email pehle se registred hai. Agar aap apna password bhool gaye hain, to 'Forgot password' use karein.",
+       "duplicate_email": "Yeh email pehle se registered hai. Agar aap apna password bhool gaye hain, to 'Forgot password' use karein.",
       "rate_limit": "Bohot ziyada attempts ho gaye hain. Thori der wait karein aur phir try karein.",
       "invalid_credentials": "Ghalat email ya password"
     }
@@ -224,9 +227,83 @@
     "text": "Made free with Munshee.pk",
     "alt": "Munshee.pk watermark"
   },
-  "expert": {
+"expert": {
     "teaser": "Aap freelancer hain? Munshee se apne clients ko manage karein - details jald.",
     "more_info": "Jald aarahi hai"
+  },
+  "dashboard": {
+    "greeting": "Hello, ",
+    "ready": "Aapka dashboard ready hai. Currency: ",
+    "total_products": "Total Products",
+    "active_catalog": "Active catalog items",
+    "total_orders": "Total Orders",
+    "all_time": "All time",
+    "total_customers": "Total Customers",
+    "active_contacts": "Active contacts",
+    "pending_orders": "Pending Orders",
+    "awaiting_fulfilment": "Awaiting fulfilment",
+    "phase_note": "Phase 1.1 foundation is in place. Catalog, orders, inventory, and automation features land in later phases.",
+    "share_profile": "Share your profile",
+    "share_hint": "Share this link with customers to show your verified business profile.",
+    "copy_link": "Copy link",
+    "view_profile": "View profile"
+  },
+  "nav": {
+    "clients": "Clients",
+    "admin": "Admin",
+    "billing": "Billing",
+    "dashboard": "Dashboard",
+    "logout": "Sign out",
+    "products": "Products",
+    "orders": "Orders",
+    "customers": "Customers",
+    "settings": "Settings",
+    "scrape": "Scrape",
+    "review": "Review",
+    "extract_text": "Extract Text",
+    "extract_vision": "Extract Vision",
+    "ask_munshee": "Ask Munshee",
+    "social": "Social Connect",
+    "whatsapp": "WhatsApp Export",
+    "import": "Import",
+    "brand": "Munshee",
+    "my_business": "My Business",
+    "switch_context": "Switch context"
+  },
+  "landing": {
+    "text": {
+      "title": "Text se extract karein",
+      "description": "Merchant copy, product descriptions, ya website text paste karein. AI structured business facts extract karega jo aap review kar sakte hain.",
+      "text_label": "Merchant text",
+      "context_label": "Context (optional)",
+      "context_placeholder": "Maslan: source website URL ya category hint",
+      "extract_button": "Facts extract karein",
+      "extracting": "Extract ho raha hai…",
+      "extracting_facts": "Facts extract ho rahe hain…",
+      "no_facts_found": "Extraction complete hua lekin response mein koi facts nahi mile.",
+      "extracted_facts": "Extract hue facts ({count})",
+      "save_button": "Facts save karein",
+      "saving": "Save ho raha hai…"
+    },
+    "website": {
+      "title": "Website se extract karein",
+      "description": "Merchant website URL dalein taake business facts jaise naam, contact, timings, delivery options, aur zyada automatically extract hon.",
+      "url_label": "Merchant website URL",
+      "url_placeholder": "https://example.com",
+      "extract_button": "Facts extract karein",
+      "extracting": "Extract ho raha hai…",
+      "extracting_facts": "Facts extract ho rahe hain…",
+      "no_facts": "Is website se koi facts extract nahi hue.",
+      "extracted_facts": "Extract hue facts ({count})",
+      "save_button": "Facts save karein",
+      "saving": "Save ho raha hai…",
+      "social_not_supported": "Facebook aur Instagram links abhi support nahi hain — photo upload ya website URL try karein.",
+      "error_generic": "Kuch ghalat ho gaya — dobara koshish karein"
+    },
+    "common": {
+      "confidence": "Confidence: {percent}%",
+      "quote_prefix": "Quote: "
+    }
   },
   "landing": {
     "pricing_strip_title": "Simple, transparent pricing",
@@ -243,6 +320,97 @@
     "products": "Products",
     "orders": "Orders",
     "customers": "Customers",
-    "settings": "Settings"
+    "settings": "Settings",
+    "scrape": "Scrape karein",
+    "review": "Review karein",
+    "extract_text": "Text se extract karein",
+    "extract_vision": "Vision se extract karein",
+    "ask_munshee": "Ask Munshee",
+    "social": "Social Connect",
+    "whatsapp": "WhatsApp Export",
+    "import": "Import karein",
+    "brand": "Munshee",
+    "my_business": "Meri Dukan",
+    "switch_context": "Context badlein"
+  },
+  "billing_ext": {
+    "current_plan": "Aapka current plan",
+    "free_plan_message": "Aap free plan par hain",
+    "reference_number_required": "Reference number daalein",
+    "pending": "Pending",
+    "included": "Included",
+    "unlimited": "Unlimited",
+    "current_plan_label": "Current",
+    "free_plan_label": "Free",
+    "actions_per_month": "actions/month",
+    "payment_method_separator": " — ",
+    "plan_switcher_title": "Plan badlein"
+  },
+  "admin_ext": {
+    "credit_amount_required": "Credit amount daalein",
+    "expiry_date_required": "Expiry date daalein",
+    "unknown": "unknown",
+    "no_reference": "—",
+    "credits": "Credits",
+    "expiry_date": "Expiry date",
+    "reference": "Reference",
+    "action": "Action"
+  },
+  "clients_ext": {
+    "client": "Client",
+    "active": "Active",
+    "business_name_label": "Business name",
+    "business_name_placeholder": "e.g. Acme Store",
+    "created": "Client created",
+    "create_failed": "Fail",
+    "business_plan_required": "Business Plan Required"
+  },
+  "imports": {
+    "read_failed": "File read fail ho gaya",
+    "no_rows": "Import ke liye koi rows nahi"
+  },
+  "reviews": {
+    "title": "Review Queue",
+    "subtitle": "Confirm se pehle business facts ka review karein.",
+    "select_all": "Sab select karein",
+    "clear": "Clear karein",
+    "approve": "Approve",
+    "reject": "Reject",
+    "approve_selected": "Selected ko approve karein",
+    "reject_selected": "Selected ko reject karein",
+    "working": "Kaam ho raha hai…",
+    "confirmed": "Fact confirmed successfully.",
+    "rejected": "Fact rejected.",
+    "confirm_failed": "Failed to confirm fact",
+    "reject_failed": "Failed to reject fact",
+    "confirmed_with_failures": "Confirmed with {count} failure(s): {failures}",
+    "confirmed_count": "Confirmed {count} fact(s).",
+    "rejected_with_failures": "Rejected with {count} failure(s): {failures}",
+    "rejected_count": "Rejected {count} fact(s).",
+    "selected_count": "{count} item(s) selected",
+    "no_pending_title": "No facts pending review",
+    "no_pending_desc": "Business facts that need confirmation will appear here.",
+    "no_value": "—",
+    "filter_category": "Category",
+    "filter_status": "Status",
+    "filter_all_categories": "All categories",
+    "filter_all_statuses": "All statuses",
+    "category_products": "Products",
+    "category_customers": "Customers",
+    "category_operations": "Operations",
+    "category_policy": "Policy",
+    "category_general": "General",
+    "status_needs_review": "Needs Review",
+    "status_confirmed": "Confirmed",
+    "status_rejected": "Rejected",
+    "col_select": "Select",
+    "col_category": "Category",
+    "col_label": "Label",
+    "col_value": "Value",
+    "col_confidence": "Confidence",
+    "col_source": "Source",
+    "col_source_ref": "Source Ref",
+    "col_status": "Status",
+    "col_actions": "Actions"
   }
 }

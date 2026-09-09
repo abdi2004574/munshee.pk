@@ -58,11 +58,19 @@ export function getCurrentLocale(): Locale {
   return currentLocale;
 }
 
-export function t(key: string, fallback?: string): string {
+export function t(key: string, fallback?: string, vars?: Record<string, string | number>): string {
   const msg = messages[currentLocale] || messages.en;
-  if (key in msg) return msg[key]!;
-  if (fallback) return fallback;
-  return key;
+  let result: string;
+  if (key in msg) result = msg[key]!;
+  else if (fallback) result = fallback;
+  else result = key;
+
+  if (vars) {
+    for (const [k, v] of Object.entries(vars)) {
+      result = result.replace(new RegExp(`\\{${k}\\}`, "g"), String(v));
+    }
+  }
+  return result;
 }
 
 export function useI18n() {
@@ -80,11 +88,19 @@ export function useI18n() {
     setLocaleState(newLocale);
   };
 
-  const tWithLocale = (key: string, fallback?: string): string => {
+  const tWithLocale = (key: string, fallback?: string, vars?: Record<string, string | number>): string => {
     const msg = messages[locale] || messages.en;
-    if (key in msg) return msg[key]!;
-    if (fallback) return fallback;
-    return key;
+    let result: string;
+    if (key in msg) result = msg[key]!;
+    else if (fallback) result = fallback;
+    else result = key;
+
+    if (vars) {
+      for (const [k, v] of Object.entries(vars)) {
+        result = result.replace(new RegExp(`\\{${k}\\}`, "g"), String(v));
+      }
+    }
+    return result;
   };
 
   return { t: tWithLocale, locale, setLocale: changeLocale };

@@ -1,0 +1,124 @@
+{
+  "$schema": "https://app.kilo.ai/config.json",
+  "model": "kilo-auto/free",
+  "small_model": "google/gemma-4-26b-a4b-it:free",
+  "default_agent": "code",
+  "instructions": ["AGENTS.md"],
+  "snapshot": true,
+  "share": "manual",
+  "compaction": {
+    "auto": true,
+    "prune": true
+  },
+  "permission": {
+    "bash": "allow",
+    "edit": {
+      "src/**": "allow",
+      "supabase/**": "allow",
+      ".kilo/**": "allow",
+      "*.json": "allow",
+      "*.md": "allow",
+      "*": "ask"
+    },
+    "read": "allow",
+    "glob": "allow",
+    "grep": "allow",
+    "list": "allow",
+    "task": "allow",
+    "webfetch": "allow",
+    "websearch": "allow",
+    "skill": "allow",
+    "todowrite": "allow",
+    "question": "ask",
+    "external_directory": "deny"
+  },
+  "mcp": {
+    "figma": {
+      "type": "remote",
+      "url": "https://mcp.figma.com/mcp",
+      "enabled": false,
+      "timeout": 30000
+    },
+    "storybook": {
+      "type": "local",
+      "command": ["npx", "-y", "@storybook/mcp", "--mode", "static"],
+      "environment": {},
+      "enabled": false,
+      "timeout": 30000
+    },
+    "playwright": {
+      "type": "local",
+      "command": ["npx", "-y", "@playwright/mcp", "--browser", "chromium"],
+      "environment": {},
+      "enabled": true,
+      "timeout": 60000
+    },
+    "context7": {
+      "type": "local",
+      "command": ["npx", "-y", "@upstash/context7-mcp"],
+      "environment": {},
+      "enabled": true,
+      "timeout": 30000
+    },
+    "firecrawl": {
+      "type": "remote",
+      "url": "https://mcp.firecrawl.io/mcp",
+      "headers": {},
+      "enabled": false,
+      "timeout": 60000
+    },
+    "github": {
+      "type": "remote",
+      "url": "https://api.github.com/mcp",
+      "headers": {},
+      "enabled": false,
+      "timeout": 30000
+    },
+    "supabase": {
+      "type": "remote",
+      "url": "https://mcp.supabase.com/mcp",
+      "headers": {},
+      "enabled": false,
+      "timeout": 30000
+    },
+    "sentry": {
+      "type": "remote",
+      "url": "https://mcp.sentry.com/mcp",
+      "headers": {},
+      "enabled": false,
+      "timeout": 30000
+    },
+    "brave-search": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-brave-search"],
+      "environment": {
+        "BRAVE_API_KEY": ""
+      },
+      "enabled": false,
+      "timeout": 30000
+    },
+    "chrome-devtools": {
+      "type": "local",
+      "command": ["npx", "-y", "@chrome-devtools/mcp"],
+      "environment": {},
+      "enabled": false,
+      "timeout": 30000
+    },
+    "nexus": {
+      "type": "local",
+      "command": ["node", "/path/to/nexus-mcp-server/dist/index.js"],
+      "environment": {},
+      "enabled": false,
+      "timeout": 60000
+    }
+  },
+  "skills": {
+    "paths": ["./.agents/skills", "./.kilo/skills"],
+    "urls": [
+      "https://raw.githubusercontent.com/Kilo-Org/kilo-marketplace/main/skills/skill-creator/",
+      "https://raw.githubusercontent.com/Kilo-Org/kilo-marketplace/main/skills/add-remote-skill/"
+    ]
+  },
+  "disabled_providers": [],
+  "enabled_providers": []
+}

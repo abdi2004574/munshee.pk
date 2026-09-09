@@ -5,28 +5,29 @@ import { Icon } from "@/components/Icon";
 import { LogoutButton } from "@/features/auth/LogoutButton";
 import { useActiveBusiness, useManagedBusinesses } from "@/hooks/usePlan";
 import { RescanBanner } from "@/features/rescan/RescanBanner";
+import { t } from "@/i18n";
 
 interface AppShellProps {
   children: ReactNode;
 }
 
 const navItems = [
-  { to: "/dashboard", label: "Dashboard", end: true },
-  { to: "/apps/products", label: "Products", end: false },
-  { to: "/apps/orders", label: "Orders", end: false },
-  { to: "/apps/customers", label: "Customers", end: false },
-  { to: "/apps/settings", label: "Settings", end: false },
-  { to: "/apps/import", label: "Import", end: false },
-  { to: "/apps/scrape", label: "Scrape", end: false },
-  { to: "/apps/review", label: "Review", end: false },
-  { to: "/apps/extract/text", label: "Extract Text", end: false },
-  { to: "/apps/extract/vision", label: "Extract Vision", end: false },
-  { to: "/apps/ask", label: "Ask Munshee", end: false },
-  { to: "/apps/social", label: "Social Connect", end: false },
-  { to: "/apps/whatsapp", label: "WhatsApp Export", end: false },
-  { to: "/apps/billing", label: "Billing & Plans", end: false },
-  { to: "/apps/clients", label: "Clients", end: false },
-  { to: "/apps/admin", label: "Admin", end: false },
+  { to: "/dashboard", label: t("nav.dashboard"), end: true },
+  { to: "/apps/products", label: t("nav.products"), end: false },
+  { to: "/apps/orders", label: t("nav.orders"), end: false },
+  { to: "/apps/customers", label: t("nav.customers"), end: false },
+  { to: "/apps/settings", label: t("nav.settings"), end: false },
+  { to: "/apps/import", label: t("nav.import"), end: false },
+  { to: "/apps/scrape", label: t("nav.scrape"), end: false },
+  { to: "/apps/review", label: t("nav.review"), end: false },
+  { to: "/apps/extract/text", label: t("nav.extract_text"), end: false },
+  { to: "/apps/extract/vision", label: t("nav.extract_vision"), end: false },
+  { to: "/apps/ask", label: t("nav.ask_munshee"), end: false },
+  { to: "/apps/social", label: t("nav.social"), end: false },
+  { to: "/apps/whatsapp", label: t("nav.whatsapp"), end: false },
+  { to: "/apps/billing", label: t("billing.title"), end: false },
+  { to: "/apps/clients", label: t("nav.clients"), end: false },
+  { to: "/apps/admin", label: t("nav.admin"), end: false },
 ];
 
 export function AppShell({ children }: AppShellProps) {
@@ -65,13 +66,13 @@ export function AppShell({ children }: AppShellProps) {
                   className="flex items-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-3 py-1.5 text-sm font-medium text-brand-700 hover:bg-brand-100"
                 >
                   <Icon name="box" size={16} />
-                  <span>{activeBusiness?.display_name ?? "My Business"}</span>
+                  <span>{activeBusiness?.display_name ?? t("nav.my_business")}</span>
                   <Icon name="chevron-down" size={14} />
                 </button>
                 {contextOpen && (
                   <div className="absolute right-0 mt-2 w-64 rounded-lg border border-gray-200 bg-white shadow-lg">
                     <div className="p-2">
-                      <p className="px-2 py-1 text-xs font-medium text-ink-muted">Switch context</p>
+                      <p className="px-2 py-1 text-xs font-medium text-ink-muted">{t("nav.switch_context")}</p>
                       {managedBusinesses.map((b) => (
                         <button
                           key={b.tenant_id}
@@ -99,7 +100,7 @@ export function AppShell({ children }: AppShellProps) {
           <button
             type="button"
             className="md:hidden"
-            aria-label="Toggle menu"
+            aria-label={t("common.toggle_menu")}
             onClick={() => setMenuOpen((v) => !v)}
           >
             <Icon name="menu" />
